@@ -1,0 +1,320 @@
+'use client';
+
+import * as React from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { Heart, Bookmark, Info, Play, Star } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import type { Anime } from '@/types';
+import { genreColors } from '@/config/tokens';
+
+export interface AnimeCardProps {
+  anime: Anime;
+  variant?: 'grid' | 'list' | 'compact' | 'featured';
+  showStats?: boolean;
+  onHover?: 'expand' | 'glow' | 'lift';
+  contextMenu?: string[];
+  onClick?: () => void;
+  className?: string;
+}
+
+export function AnimeCard({
+  anime,
+  variant = 'grid',
+  showStats = true,
+  onHover = 'lift',
+  contextMenu = ['Add to List', 'Similar', 'Share'],
+  onClick,
+  className,
+}: AnimeCardProps) {
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [isFavorite, setIsFavorite] = React.useState(false);
+  const [isBookmarked, setIsBookmarked] = React.useState(false);
+
+  const handleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsFavorite(!isFavorite);
+  };
+
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsBookmarked(!isBookmarked);
+  };
+
+  if (variant === 'list') {
+    return (
+      <motion.div
+        whileHover={{ scale: 1.01 }}
+        className={cn(
+          'flex gap-4 rounded-lg border border-border bg-card p-4 transition-all hover:shadow-lg',
+          className
+        )}
+      >
+        <Link href={`/anime/${anime.anime_id}`} className="flex-shrink-0">
+          <div className="relative h-32 w-24 overflow-hidden rounded-md">
+            <Image
+              src={anime.image_url}
+              alt={anime.title}
+              fill
+              className="object-cover"
+            />
+          </div>
+        </Link>
+        <div className="flex flex-1 flex-col justify-between">
+          <div>
+            <Link href={`/anime/${anime.anime_id}`}>
+              <h3 className="line-clamp-1 text-lg font-semibold hover:text-primary-500">
+                {anime.title}
+              </h3>
+            </Link>
+            <p className="line-clamp-2 text-sm text-muted-foreground mt-1">
+              {anime.synopsis}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            {anime.genres.slice(0, 3).map((genre) => (
+              <Badge
+                key={genre}
+                variant="secondary"
+                style={{
+                  backgroundColor: genreColors[genre] + '20',
+                  color: genreColors[genre],
+                }}
+              >
+                {genre}
+              </Badge>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col items-end justify-between">
+          <div className="flex items-center gap-1">
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+            <span className="font-semibold">{anime.score.toFixed(1)}</span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={handleFavorite}
+              className={cn(isFavorite && 'text-red-500')}
+            >
+              <Heart className={cn('h-5 w-5', isFavorite && 'fill-current')} />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={handleBookmark}
+              className={cn(isBookmarked && 'text-primary-500')}
+            >
+              <Bookmark className={cn('h-5 w-5', isBookmarked && 'fill-current')} />
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  const cardVariants = {
+    initial: { y: 0, scale: 1 },
+    hover:
+      onHover === 'lift'
+        ? { y: -8, scale: 1.02 }
+        : onHover === 'expand'
+        ? { scale: 1.05 }
+        : { scale: 1 },
+  };
+
+  return (
+    <motion.div
+      initial="initial"
+      whileHover="hover"
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      variants={cardVariants}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className={cn(
+        'group relative overflow-hidden rounded-lg border border-border bg-card transition-all',
+        onHover === 'glow' && 'hover:shadow-glow',
+        variant === 'featured' ? 'aspect-[2/3]' : 'aspect-poster',
+        className
+      )}
+    >
+      <Link href={`/anime/${anime.anime_id}`} onClick={onClick}>
+        <div className="relative h-full w-full">
+          {/* Poster Image */}
+          <Image
+            src={anime.image_url}
+            alt={anime.title}
+            fill
+            className={cn(
+              'object-cover transition-transform duration-500',
+              isHovered && 'scale-105'
+            )}
+            sizes="(max-width: 768px) 50vw, 25vw"
+          />
+
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+          {/* Genre Badges (Top Right) */}
+          <div className="absolute right-2 top-2 flex flex-col gap-1">
+            {anime.genres.slice(0, 2).map((genre) => (
+              <motion.div
+                key={genre}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Badge
+                  className="glassmorphism text-xs"
+                  style={{
+                    backgroundColor: genreColors[genre] + '40',
+                    color: 'white',
+                    backdropFilter: 'blur(8px)',
+                  }}
+                >
+                  {genre}
+                </Badge>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Rating (Bottom Left) */}
+          {showStats && (
+            <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md bg-black/60 px-2 py-1 backdrop-blur-sm">
+              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+              <span className="text-sm font-semibold text-white">
+                {anime.score.toFixed(1)}
+              </span>
+            </div>
+          )}
+
+          {/* Quick Actions (Bottom Right) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={isHovered ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            transition={{ delay: 0.2 }}
+            className="absolute bottom-2 right-2 flex gap-1"
+          >
+            <Button
+              size="icon"
+              variant="secondary"
+              className="h-8 w-8 bg-white/90 hover:bg-white"
+              onClick={handleFavorite}
+            >
+              <Heart
+                className={cn(
+                  'h-4 w-4',
+                  isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-700'
+                )}
+              />
+            </Button>
+            <Button
+              size="icon"
+              variant="secondary"
+              className="h-8 w-8 bg-white/90 hover:bg-white"
+              onClick={handleBookmark}
+            >
+              <Bookmark
+                className={cn(
+                  'h-4 w-4',
+                  isBookmarked ? 'fill-primary-500 text-primary-500' : 'text-gray-700'
+                )}
+              />
+            </Button>
+            {contextMenu && contextMenu.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-8 w-8 bg-white/90 hover:bg-white"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                  >
+                    <Info className="h-4 w-4 text-gray-700" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {contextMenu.map((item) => (
+                    <DropdownMenuItem
+                      key={item}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                    >
+                      {item}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </motion.div>
+
+          {/* Title Overlay (Bottom) */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={isHovered ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+            transition={{ delay: 0.1 }}
+            className="absolute bottom-0 left-0 right-0 p-3"
+          >
+            <h3 className="line-clamp-2 text-sm font-semibold text-white">
+              {anime.title}
+            </h3>
+            <div className="mt-1 flex items-center gap-2 text-xs text-white/80">
+              <span>{anime.type}</span>
+              <span>•</span>
+              <span>{anime.year}</span>
+              {anime.episodes && (
+                <>
+                  <span>•</span>
+                  <span>{anime.episodes} eps</span>
+                </>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Play Button (Center on Hover) */}
+          {anime.trailer_url && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={
+                isHovered
+                  ? { opacity: 1, scale: 1 }
+                  : { opacity: 0, scale: 0.8 }
+              }
+              transition={{ delay: 0.15 }}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            >
+              <Button
+                size="icon"
+                className="h-12 w-12 rounded-full bg-primary-500/90 hover:bg-primary-600"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.open(anime.trailer_url, '_blank');
+                }}
+              >
+                <Play className="h-6 w-6 fill-white text-white" />
+              </Button>
+            </motion.div>
+          )}
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
