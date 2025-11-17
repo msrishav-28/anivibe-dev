@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { User, Calendar, TrendingUp, Heart, Clock } from 'lucide-react';
+import { Calendar, TrendingUp, Heart, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
-import { AnimeGrid } from '@/components/features/anime-grid';
 import { useAuthStore } from '@/store/auth-store';
 import { useWatchlistStore } from '@/store/watchlist-store';
 import { api } from '@/lib/api-client';
@@ -20,11 +19,13 @@ export default function ProfilePage() {
     if (user) {
       loadUserStats();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadUserStats = async () => {
+    if (!user?.user_id) return;
     try {
-      const userStats = await api.getUserStats(user!.user_id);
+      const userStats = await api.getUserStats(user.user_id);
       setStats(userStats);
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -156,9 +157,23 @@ export default function ProfilePage() {
                   <CardTitle>Recent Activity</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">
-                    Activity tracking coming soon...
-                  </p>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="h-2 w-2 rounded-full bg-primary-500" />
+                      <span className="text-muted-foreground">Joined AniVibe</span>
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="h-2 w-2 rounded-full bg-success" />
+                      <span className="text-muted-foreground">Watchlist: {entries.length} anime</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="h-2 w-2 rounded-full bg-accent-pink" />
+                      <span className="text-muted-foreground">Completed: {completedCount} anime</span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>

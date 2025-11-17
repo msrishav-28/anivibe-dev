@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { MoodSelector } from '@/components/features/mood-selector';
 import { AnimeGrid } from '@/components/features/anime-grid';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/lib/api-client';
 import type { Anime } from '@/types';
@@ -35,6 +34,7 @@ export default function MoodPage() {
     if (selectedMood) {
       loadRecommendations();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMood]);
 
   return (

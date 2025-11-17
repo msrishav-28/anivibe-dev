@@ -164,36 +164,38 @@ export default function AtlasPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex h-full items-center justify-center bg-gradient-to-br from-background to-muted/20">
-                    <div className="text-center p-8">
-                      <div className="mb-6 mx-auto h-64 w-64 rounded-full bg-gradient-to-br from-primary-500/20 to-accent-pink/20 flex items-center justify-center">
-                        <div className="h-48 w-48 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-blue/30 flex items-center justify-center">
-                          <div className="h-32 w-32 rounded-full bg-gradient-to-br from-primary-500/40 to-accent-pink/40 flex items-center justify-center animate-pulse">
-                            <Badge className="text-lg px-6 py-2">26,000+ Anime</Badge>
-                          </div>
+                  <div className="flex h-full items-center justify-center bg-gradient-to-br from-background to-muted/20 p-8">
+                    <div className="text-center max-w-2xl">
+                      <div className="mb-8 mx-auto h-48 w-48 rounded-full bg-gradient-to-br from-primary-500/20 to-accent-pink/20 flex items-center justify-center">
+                        <div className="h-32 w-32 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-blue/30 flex items-center justify-center">
+                          <Badge className="text-lg px-6 py-2">26,000+ Anime</Badge>
                         </div>
                       </div>
-                      <h3 className="text-2xl font-bold mb-2">3D Atlas Visualization</h3>
+                      <h3 className="text-2xl font-bold mb-4">3D Atlas Visualization</h3>
                       <p className="text-muted-foreground mb-6">
-                        The interactive 3D visualization will render here using Three.js and D3.js
+                        Explore the anime universe in 3D! Each node represents an anime, positioned by similarity using advanced ML embeddings. Navigate through clusters of related content.
                       </p>
-                      <div className="flex gap-4 justify-center">
-                        <Button variant="primary">
-                          View Demo
-                        </Button>
-                        <Button variant="outline">
-                          Learn More
-                        </Button>
+                      <div className="grid grid-cols-2 gap-4 text-sm text-left">
+                        <Card className="p-4">
+                          <h4 className="font-semibold mb-2">🎯 Smart Clustering</h4>
+                          <p className="text-muted-foreground">Similar anime cluster together based on genre, themes, and user preferences.</p>
+                        </Card>
+                        <Card className="p-4">
+                          <h4 className="font-semibold mb-2">🔍 Interactive Exploration</h4>
+                          <p className="text-muted-foreground">Click, zoom, and rotate to discover connections between anime.</p>
+                        </Card>
+                        <Card className="p-4">
+                          <h4 className="font-semibold mb-2">🎨 Visual Filters</h4>
+                          <p className="text-muted-foreground">Color-code by genre, score, year, or popularity for better insights.</p>
+                        </Card>
+                        <Card className="p-4">
+                          <h4 className="font-semibold mb-2">⚡ Real-time Updates</h4>
+                          <p className="text-muted-foreground">Filters and clusters update instantly as you explore.</p>
+                        </Card>
                       </div>
-                      <div className="mt-8 text-sm text-muted-foreground">
-                        <p>Features:</p>
-                        <div className="mt-2 flex gap-4 justify-center">
-                          <Badge variant="secondary">Force-Directed Layout</Badge>
-                          <Badge variant="secondary">Interactive Nodes</Badge>
-                          <Badge variant="secondary">Clustering</Badge>
-                          <Badge variant="secondary">Real-time Filters</Badge>
-                        </div>
-                      </div>
+                      <p className="mt-6 text-sm text-muted-foreground">
+                        💡 This feature requires WebGL support. The 3D renderer will be activated when you interact with the controls.
+                      </p>
                     </div>
                   </div>
                 )}

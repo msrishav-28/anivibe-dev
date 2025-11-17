@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Inter, Outfit } from 'next/font/google';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { ToastProvider } from '@/components/toast-provider';
 import '@/styles/globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -28,11 +30,14 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${outfit.variable} font-sans`}>
-        <div className="relative flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
+        <ErrorBoundary>
+          <div className="relative flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+          <ToastProvider />
+        </ErrorBoundary>
       </body>
     </html>
   );
