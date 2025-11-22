@@ -89,3 +89,7 @@ docker-compose.override.yml
 *.bak
 *.tmp
 *.swp
+
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md
