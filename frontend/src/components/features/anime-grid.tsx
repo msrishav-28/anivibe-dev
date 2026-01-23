@@ -6,13 +6,13 @@ import { AnimeCard } from './anime-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Anime } from '@/types';
 
+// Interface update
 interface AnimeGridProps {
   anime: Anime[];
   isLoading?: boolean;
   hasMore?: boolean;
   onLoadMore?: () => void;
-  variant?: 'grid' | 'list';
-  className?: string;
+  className?: string; // variant removed
 }
 
 export function AnimeGrid({
@@ -20,7 +20,6 @@ export function AnimeGrid({
   isLoading = false,
   hasMore = false,
   onLoadMore,
-  variant = 'grid',
   className = '',
 }: AnimeGridProps) {
   const [ref, inView] = useIntersectionObserver({
@@ -47,30 +46,22 @@ export function AnimeGrid({
   return (
     <div className={className}>
       <div
-        className={
-          variant === 'grid'
-            ? 'grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
-            : 'flex flex-col gap-4'
-        }
+        className='grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
       >
         {anime.map((item) => (
-          <AnimeCard key={item.anime_id} anime={item} variant={variant} />
+          <AnimeCard key={item.anime_id} anime={item} variant="grid" />
         ))}
       </div>
 
       {/* Loading More Indicator */}
       {isLoading && (
         <div
-          className={
-            variant === 'grid'
-              ? 'mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
-              : 'mt-4 flex flex-col gap-4'
-          }
+          className='mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
         >
-          {Array.from({ length: variant === 'grid' ? 12 : 3 }).map((_, i) => (
+          {Array.from({ length: 12 }).map((_, i) => (
             <Skeleton
               key={i}
-              className={variant === 'grid' ? 'aspect-poster h-full' : 'h-32'}
+              className='aspect-poster h-full'
             />
           ))}
         </div>

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
+// Checkbox removed
 import { Progress } from '@/components/ui/progress';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 
@@ -14,7 +14,7 @@ const GENRES = [
 ];
 
 interface OnboardingFlowProps {
-  onComplete: (preferences: any) => void;
+  onComplete: (_preferences: any) => void;
 }
 
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
@@ -82,11 +82,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             ].map((level) => (
               <Card
                 key={level.id}
-                className={`cursor-pointer transition-all hover:scale-105 ${
-                  experienceLevel === level.id
-                    ? 'border-primary-500 bg-primary-500/10 ring-2 ring-primary-500'
-                    : 'hover:border-primary-500/50'
-                }`}
+                className={`cursor-pointer transition-all hover:scale-105 ${experienceLevel === level.id
+                  ? 'border-primary-500 bg-primary-500/10 ring-2 ring-primary-500'
+                  : 'hover:border-primary-500/50'
+                  }`}
                 onClick={() => setExperienceLevel(level.id)}
               >
                 <CardContent className="flex items-center justify-between p-4">
@@ -94,9 +93,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <p className="font-semibold">{level.label}</p>
                     <p className="text-sm text-muted-foreground">{level.desc}</p>
                   </div>
-                  <div className={`h-4 w-4 rounded-full border-2 ${
-                    experienceLevel === level.id ? 'bg-primary-500 border-primary-500' : 'border-muted'
-                  }`} />
+                  <div className={`h-4 w-4 rounded-full border-2 ${experienceLevel === level.id ? 'bg-primary-500 border-primary-500' : 'border-muted'
+                    }`} />
                 </CardContent>
               </Card>
             ))}
@@ -118,15 +116,16 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 <div
                   key={genre}
                   onClick={() => handleGenreToggle(genre)}
-                  className={`cursor-pointer rounded-lg border-2 p-3 text-center transition-all hover:scale-105 ${
-                    selectedGenres.includes(genre)
-                      ? 'border-primary-500 bg-primary-500/10'
-                      : 'border-border hover:border-primary-500/50'
-                  }`}
+                  className={`cursor-pointer rounded-lg border-2 p-3 text-center transition-all hover:scale-105 ${selectedGenres.includes(genre)
+                    ? 'border-primary-500 bg-primary-500/10'
+                    : 'border-border hover:border-primary-500/50'
+                    }`}
                 >
-                  <Checkbox
+                  <input
+                    type="checkbox"
                     checked={selectedGenres.includes(genre)}
-                    className="mb-2"
+                    readOnly
+                    className="mb-2 h-4 w-4 rounded border-border text-primary-500 focus:ring-primary-500 accent-primary-500"
                   />
                   <p className="text-sm font-medium">{genre}</p>
                 </div>

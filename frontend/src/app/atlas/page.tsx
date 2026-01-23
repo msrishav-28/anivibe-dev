@@ -8,13 +8,15 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Maximize2, Minimize2, RotateCw, ZoomIn, ZoomOut, Info } from 'lucide-react';
 import { api } from '@/lib/api-client';
+import { GlitchText } from '@/components/ui/glitch-text';
+
+// ... imports
 
 export default function AtlasPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [colorBy, setColorBy] = useState('genre');
   const [clusterLevel, setClusterLevel] = useState([5]);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [selectedAnime, setSelectedAnime] = useState<any>(null);
 
   useEffect(() => {
     loadAtlasData();
@@ -37,7 +39,7 @@ export default function AtlasPage() {
       <div className="container-custom py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="mb-2 text-4xl font-bold">Anime Atlas</h1>
+          <GlitchText text="ATLAS INTERFACE" as="h1" className="mb-2 text-4xl font-bold font-heading" />
           <p className="text-lg text-muted-foreground">
             Explore 26,000+ anime in an interactive 3D visualization space
           </p>
@@ -45,33 +47,33 @@ export default function AtlasPage() {
 
         <div className="grid gap-6 lg:grid-cols-4">
           {/* Controls Sidebar */}
-          <Card className="lg:col-span-1">
+          <Card variant="holo" className="lg:col-span-1 border-primary-500/20 h-fit">
             <CardHeader>
-              <CardTitle>Visualization Controls</CardTitle>
-              <CardDescription>Customize the atlas view</CardDescription>
+              <CardTitle className="uppercase tracking-widest text-primary-400">Controls</CardTitle>
+              <CardDescription>Customize visualization parameters</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Color By */}
               <div>
-                <label className="mb-2 block text-sm font-medium">Color By</label>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-muted-foreground">Color Mode</label>
                 <Select value={colorBy} onValueChange={setColorBy}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-black/40 border-white/10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="genre">Genre</SelectItem>
-                    <SelectItem value="score">Score</SelectItem>
-                    <SelectItem value="year">Year</SelectItem>
+                    <SelectItem value="genre">Genre (Default)</SelectItem>
+                    <SelectItem value="score">Rating Score</SelectItem>
+                    <SelectItem value="year">Release Year</SelectItem>
                     <SelectItem value="popularity">Popularity</SelectItem>
-                    <SelectItem value="type">Type</SelectItem>
+                    <SelectItem value="type">Format Type</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Cluster Level */}
               <div>
-                <label className="mb-2 block text-sm font-medium">
-                  Cluster Level: {clusterLevel[0]}
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Cluster Density: {clusterLevel[0]}
                 </label>
                 <Slider
                   value={clusterLevel}
@@ -79,25 +81,27 @@ export default function AtlasPage() {
                   min={1}
                   max={10}
                   step={1}
+                  className="py-4"
                 />
               </div>
 
               {/* View Controls */}
               <div className="space-y-2">
-                <label className="mb-2 block text-sm font-medium">View Controls</label>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-muted-foreground">Camera</label>
                 <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="bg-black/40 border-white/10 hover:bg-primary-500/20">
                     <ZoomIn className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="bg-black/40 border-white/10 hover:bg-primary-500/20">
                     <ZoomOut className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="bg-black/40 border-white/10 hover:bg-primary-500/20">
                     <RotateCw className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
+                    className="bg-black/40 border-white/10 hover:bg-primary-500/20"
                     onClick={() => setIsFullscreen(!isFullscreen)}
                   >
                     {isFullscreen ? (
@@ -111,39 +115,38 @@ export default function AtlasPage() {
 
               {/* Legend */}
               <div>
-                <label className="mb-2 block text-sm font-medium">Legend</label>
-                <div className="space-y-2">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-muted-foreground">Legend</label>
+                <div className="space-y-2 p-3 rounded-lg bg-black/40 border border-white/5">
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded-full bg-primary-500" />
-                    <span className="text-sm">Action</span>
+                    <div className="h-2 w-2 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(139,92,246,0.6)]" />
+                    <span className="text-xs text-slate-300">Action & Adventure</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded-full bg-accent-pink" />
-                    <span className="text-sm">Romance</span>
+                    <div className="h-2 w-2 rounded-full bg-accent-pink shadow-[0_0_8px_rgba(236,72,153,0.6)]" />
+                    <span className="text-xs text-slate-300">Romance & Drama</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded-full bg-accent-blue" />
-                    <span className="text-sm">Sci-Fi</span>
+                    <div className="h-2 w-2 rounded-full bg-accent-blue shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+                    <span className="text-xs text-slate-300">Sci-Fi & Mech</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded-full bg-success" />
-                    <span className="text-sm">Comedy</span>
+                    <div className="h-2 w-2 rounded-full bg-success shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                    <span className="text-xs text-slate-300">Comedy & Slice of Life</span>
                   </div>
                 </div>
               </div>
 
               {/* Info */}
-              <Card className="bg-primary-500/5 border-primary-500/20">
+              <Card className="bg-primary-500/10 border-primary-500/20 shadow-none">
                 <CardContent className="p-4">
-                  <div className="flex items-start gap-2">
-                    <Info className="h-4 w-4 mt-0.5 text-primary-500" />
-                    <div className="text-sm">
-                      <p className="font-medium mb-1">How to use</p>
-                      <ul className="space-y-1 text-muted-foreground">
-                        <li>• Click and drag to rotate</li>
-                        <li>• Scroll to zoom</li>
-                        <li>• Click nodes to view details</li>
-                        <li>• Similar anime cluster together</li>
+                  <div className="flex items-start gap-3">
+                    <Info className="h-4 w-4 mt-0.5 text-primary-400 shrink-0" />
+                    <div className="text-xs leading-relaxed text-muted-foreground">
+                      <p className="font-bold text-primary-300 mb-1">NAVIGATION</p>
+                      <ul className="space-y-1">
+                        <li>• Drag to rotate view</li>
+                        <li>• Scroll to zoom in/out</li>
+                        <li>• Click nodes for details</li>
                       </ul>
                     </div>
                   </div>
@@ -154,19 +157,20 @@ export default function AtlasPage() {
 
           {/* 3D Visualization */}
           <div className="lg:col-span-3">
-            <Card className="h-[700px]">
+            <Card variant="holo" className="h-[700px] border-primary-500/20 overflow-hidden relative group">
+              <div className="absolute inset-0 bg-gradient-to-b from-primary-500/5 to-transparent pointer-events-none" />
               <CardContent className="relative h-full p-0">
                 {isLoading ? (
                   <div className="flex h-full items-center justify-center">
                     <div className="text-center">
-                      <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary-500 border-t-transparent mx-auto" />
-                      <p className="text-muted-foreground">Loading Atlas...</p>
+                      <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary-500 border-t-transparent mx-auto shadow-glow" />
+                      <GlitchText text="INITIALIZING ATLAS..." className="text-sm font-mono text-primary-400" />
                     </div>
                   </div>
                 ) : (
-                  <div className="flex h-full items-center justify-center bg-gradient-to-br from-background to-muted/20 p-8">
+                  <div className="flex h-full items-center justify-center bg-[#050505] p-8">
                     <div className="text-center max-w-2xl">
-                      <div className="mb-8 mx-auto h-48 w-48 rounded-full bg-gradient-to-br from-primary-500/20 to-accent-pink/20 flex items-center justify-center">
+                      <div className="mb-8 mx-auto h-48 w-48 rounded-full bg-gradient-to-br from-primary-500/10 to-accent-pink/10 flex items-center justify-center border border-white/5 animate-pulse-slow">
                         <div className="h-32 w-32 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-blue/30 flex items-center justify-center">
                           <Badge className="text-lg px-6 py-2">26,000+ Anime</Badge>
                         </div>
@@ -211,7 +215,7 @@ export default function AtlasPage() {
                   <Card className="flex-1 glassmorphism">
                     <CardContent className="p-3">
                       <div className="text-xs text-muted-foreground">Clusters</div>
-                      <div className="text-lg font-bold">{clusterLevel[0] * 100}</div>
+                      <div className="text-lg font-bold">{(clusterLevel[0] ?? 0) * 100}</div>
                     </CardContent>
                   </Card>
                   <Card className="flex-1 glassmorphism">

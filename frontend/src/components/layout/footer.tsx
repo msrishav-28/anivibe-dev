@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Github, Twitter, Discord, Heart } from 'lucide-react';
+import { Github, Twitter, MessageCircle, Heart } from 'lucide-react';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -34,7 +34,7 @@ export function Footer() {
                 href="https://discord.com"
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Discord className="h-5 w-5" />
+                <MessageCircle className="h-5 w-5" />
               </Link>
             </div>
           </div>
@@ -43,14 +43,6 @@ export function Footer() {
           <div className="space-y-4">
             <h4 className="text-sm font-semibold">Product</h4>
             <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/explore"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Explore
-                </Link>
-              </li>
               <li>
                 <Link
                   href="/search"

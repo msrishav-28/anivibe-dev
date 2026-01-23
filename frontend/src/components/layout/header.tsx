@@ -1,10 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { Search, Menu, User, Bell, Settings } from 'lucide-react';
+import { Bell, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -15,93 +13,29 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthStore } from '@/store/auth-store';
-import { useUIStore } from '@/store/ui-store';
-import { cn } from '@/lib/utils';
 
 export function Header() {
   const { user, isAuthenticated, logout } = useAuthStore();
-  const { toggleMobileMenu, theme, setTheme } = useUIStore();
-  const [searchQuery, setSearchQuery] = useState('');
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-40 w-full border-b border-white/5 bg-black/60 backdrop-blur-xl">
       <div className="container-custom flex h-16 items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center space-x-2">
-            <div className="gradient-animated h-10 w-10 rounded-lg" />
-            <span className="gradient-text text-2xl font-bold">AniVibe</span>
+            <div className="gradient-animated h-8 w-8 rounded-lg" />
+            <span className="gradient-text text-xl font-bold font-heading tracking-wider">AniVibe</span>
           </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link
-              href="/explore"
-              className="text-sm font-medium transition-colors hover:text-primary-500"
-            >
-              Explore
-            </Link>
-            <Link
-              href="/search"
-              className="text-sm font-medium transition-colors hover:text-primary-500"
-            >
-              Search
-            </Link>
-            <Link
-              href="/atlas"
-              className="text-sm font-medium transition-colors hover:text-primary-500"
-            >
-              Atlas
-            </Link>
-            {isAuthenticated && (
-              <>
-                <Link
-                  href="/watchlist"
-                  className="text-sm font-medium transition-colors hover:text-primary-500"
-                >
-                  My List
-                </Link>
-                <Link
-                  href="/profile"
-                  className="text-sm font-medium transition-colors hover:text-primary-500"
-                >
-                  Profile
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-
-        {/* Search Bar */}
-        <div className="hidden lg:flex flex-1 max-w-md mx-8">
-          <Input
-            placeholder="Search anime..."
-            leftIcon={<Search className="h-4 w-4" />}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onClear={() => setSearchQuery('')}
-            className="w-full"
-          />
         </div>
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-4">
-          {/* Search Icon (Mobile) */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={() => {}}
-          >
-            <Search className="h-5 w-5" />
-          </Button>
-
           {isAuthenticated ? (
             <>
               {/* Notifications */}
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon" className="relative hover:bg-white/10">
                 <Bell className="h-5 w-5" />
-                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-500" />
+                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-500 shadow-[0_0_10px_#8b5cf6]" />
               </Button>
 
               {/* User Menu */}
@@ -109,20 +43,20 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="relative h-10 w-10 rounded-full"
+                    className="relative h-10 w-10 rounded-full border border-white/10 hover:border-primary-500/50 transition-colors"
                   >
                     <Avatar>
                       <AvatarImage src={user?.avatar_url} />
-                      <AvatarFallback>
+                      <AvatarFallback className="bg-primary-500/20 text-primary-500">
                         {user?.username?.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className="w-56 bg-black/90 border-white/10 backdrop-blur-xl">
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">
+                      <p className="text-sm font-medium leading-none text-white">
                         {user?.username}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
@@ -130,29 +64,21 @@ export function Header() {
                       </p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem asChild className="focus:bg-primary-500/20 focus:text-white">
                     <Link href="/profile">Profile</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild className="focus:bg-primary-500/20 focus:text-white">
                     <Link href="/watchlist">My List</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild className="focus:bg-primary-500/20 focus:text-white">
                     <Link href="/settings">
                       <Settings className="mr-2 h-4 w-4" />
                       Settings
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setTheme(theme === 'dark' ? 'light' : 'dark');
-                    }}
-                  >
-                    Toggle Theme
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => logout()}>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem onClick={() => logout()} className="text-red-500 focus:bg-red-500/10 focus:text-red-500">
                     Log out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -160,24 +86,14 @@ export function Header() {
             </>
           ) : (
             <div className="flex items-center gap-2">
-              <Button variant="ghost" asChild>
+              <Button variant="ghost" asChild className="text-muted-foreground hover:text-white hover:bg-white/5">
                 <Link href="/login">Login</Link>
               </Button>
-              <Button variant="primary" asChild>
+              <Button variant="primary" size="sm" asChild className="shadow-none">
                 <Link href="/signup">Sign Up</Link>
               </Button>
             </div>
           )}
-
-          {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={toggleMobileMenu}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
         </div>
       </div>
     </header>

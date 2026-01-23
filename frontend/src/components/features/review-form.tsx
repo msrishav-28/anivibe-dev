@@ -26,7 +26,7 @@ export function ReviewForm({ animeId, onSuccess, existingReview }: ReviewFormPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       setError('Please log in to submit a review');
       return;
@@ -44,16 +44,16 @@ export function ReviewForm({ animeId, onSuccess, existingReview }: ReviewFormPro
       if (existingReview) {
         await api.updateRating(existingReview.rating_id, {
           score,
-          review_text: reviewText || undefined,
+          review_text: reviewText,
         });
       } else {
         await api.createRating({
           anime_id: animeId,
           score,
-          review_text: reviewText || undefined,
+          review_text: reviewText,
         });
       }
-      
+
       onSuccess?.();
     } catch (err: any) {
       setError(err.message || 'Failed to submit review');

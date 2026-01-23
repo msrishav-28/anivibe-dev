@@ -19,7 +19,7 @@ import { genreColors } from '@/config/tokens';
 
 export interface AnimeCardProps {
   anime: Anime;
-  variant?: 'grid' | 'list' | 'compact' | 'featured';
+  variant?: 'grid' | 'compact' | 'featured';
   showStats?: boolean;
   onHover?: 'expand' | 'glow' | 'lift';
   contextMenu?: string[];
@@ -52,78 +52,7 @@ export function AnimeCard({
     setIsBookmarked(!isBookmarked);
   };
 
-  if (variant === 'list') {
-    return (
-      <motion.div
-        whileHover={{ scale: 1.01 }}
-        className={cn(
-          'flex gap-4 rounded-lg border border-border bg-card p-4 transition-all hover:shadow-lg',
-          className
-        )}
-      >
-        <Link href={`/anime/${anime.anime_id}`} className="flex-shrink-0">
-          <div className="relative h-32 w-24 overflow-hidden rounded-md">
-            <Image
-              src={anime.image_url}
-              alt={anime.title}
-              fill
-              className="object-cover"
-            />
-          </div>
-        </Link>
-        <div className="flex flex-1 flex-col justify-between">
-          <div>
-            <Link href={`/anime/${anime.anime_id}`}>
-              <h3 className="line-clamp-1 text-lg font-semibold hover:text-primary-500">
-                {anime.title}
-              </h3>
-            </Link>
-            <p className="line-clamp-2 text-sm text-muted-foreground mt-1">
-              {anime.synopsis}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 mt-2">
-            {anime.genres.slice(0, 3).map((genre) => (
-              <Badge
-                key={genre}
-                variant="secondary"
-                style={{
-                  backgroundColor: genreColors[genre] + '20',
-                  color: genreColors[genre],
-                }}
-              >
-                {genre}
-              </Badge>
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-col items-end justify-between">
-          <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-            <span className="font-semibold">{anime.score.toFixed(1)}</span>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={handleFavorite}
-              className={cn(isFavorite && 'text-red-500')}
-            >
-              <Heart className={cn('h-5 w-5', isFavorite && 'fill-current')} />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={handleBookmark}
-              className={cn(isBookmarked && 'text-primary-500')}
-            >
-              <Bookmark className={cn('h-5 w-5', isBookmarked && 'fill-current')} />
-            </Button>
-          </div>
-        </div>
-      </motion.div>
-    );
-  }
+  // List variant removed for Neo-Tokyo pivot
 
   const cardVariants = {
     initial: { y: 0, scale: 1 },
@@ -131,8 +60,8 @@ export function AnimeCard({
       onHover === 'lift'
         ? { y: -8, scale: 1.02 }
         : onHover === 'expand'
-        ? { scale: 1.05 }
-        : { scale: 1 },
+          ? { scale: 1.05 }
+          : { scale: 1 },
   };
 
   return (
@@ -150,7 +79,7 @@ export function AnimeCard({
         className
       )}
     >
-      <Link href={`/anime/${anime.anime_id}`} onClick={onClick}>
+      <Link href={`/anime/${anime.anime_id}`} onClick={() => onClick?.()}>
         <div className="relative h-full w-full">
           {/* Poster Image */}
           <Image

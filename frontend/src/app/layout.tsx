@@ -1,13 +1,11 @@
 import type { Metadata } from 'next';
-import { Inter, Outfit } from 'next/font/google';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
+import { BottomNav } from '@/components/layout/bottom-nav';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { ToastProvider } from '@/components/toast-provider';
+import { CinematicContainer } from '@/components/layout/cinematic-container';
 import '@/styles/globals.css';
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
 
 export const metadata: Metadata = {
   title: 'AniVibe - AI-Powered Anime Discovery',
@@ -22,19 +20,33 @@ export const metadata: Metadata = {
   },
 };
 
+import { Outfit } from 'next/font/google';
+
+const outfit = Outfit({
+  subsets: ['latin'],
+  variable: '--font-outfit',
+  display: 'swap',
+});
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} ${outfit.variable} font-sans`}>
+    <html lang="en" className={`dark ${outfit.variable}`}>
+      <head>
+        <link href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700,500&f[]=satoshi@900,700,500,400&display=swap" rel="stylesheet" />
+      </head>
+      <body className="font-sans text-foreground bg-background antialiased overflow-x-hidden selection:bg-primary-500/30 selection:text-white">
         <ErrorBoundary>
           <div className="relative flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
+            <CinematicContainer>
+              <Header />
+              <main className="flex-1 relative z-10">{children}</main>
+              <Footer />
+              <BottomNav />
+            </CinematicContainer>
           </div>
           <ToastProvider />
         </ErrorBoundary>

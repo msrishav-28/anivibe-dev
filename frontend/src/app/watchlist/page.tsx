@@ -6,8 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { AnimeGrid } from '@/components/features/anime-grid';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Grid, List, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { useWatchlistStore } from '@/store/watchlist-store';
 import { useAuthStore } from '@/store/auth-store';
 import { api } from '@/lib/api-client';
@@ -16,41 +15,69 @@ import type { Anime, WatchlistEntry } from '@/types';
 export default function WatchlistPage() {
   const { user } = useAuthStore();
   const { entries, fetchWatchlist } = useWatchlistStore();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('date_added');
   const [animeData, setAnimeData] = useState<Record<number, Anime>>({});
   const [isLoading, setIsLoading] = useState(true);
 
+  // Effect 1: Fetch watchlist when user is available
   useEffect(() => {
     if (user) {
-      loadWatchlist();
+      fetchWatchlist();
     }
-  }, [user]);
+  }, [user, fetchWatchlist]);
 
-  const loadWatchlist = async () => {
-    setIsLoading(true);
-    try {
-      await fetchWatchlist();
-      
-      // Fetch anime details for all entries
-      const animePromises = entries.map((entry) => 
-        api.getAnime(entry.anime_id).catch(() => null)
-      );
-      const animeResults = await Promise.all(animePromises);
-      
-      const animeMap: Record<number, Anime> = {};
-      animeResults.forEach((anime) => {
-        if (anime) {
-          animeMap[anime.anime_id] = anime;
+  // Effect 2: Load anime details when entries change
+  useEffect(() => {
+    const loadAnimeDetails = async () => {
+      if (entries.length === 0) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        // Optimization: Fetch in batches of 5 to avoid rate limiting/flooding
+        const BATCH_SIZE = 5;
+        const tempMap: Record<number, Anime> = { ...animeData };
+
+        // Identify missing anime
+        const missingIds = entries
+          .map(e => e.anime_id)
+          .filter(id => !tempMap[id]);
+
+        if (missingIds.length === 0) {
+          setIsLoading(false);
+          return;
         }
-      });
-      setAnimeData(animeMap);
-    } catch (error) {
-      console.error('Failed to load watchlist:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
+        // Process batches
+        for (let i = 0; i < missingIds.length; i += BATCH_SIZE) {
+          const batch = missingIds.slice(i, i + BATCH_SIZE);
+          const promises = batch.map(id => api.getAnime(id).catch(() => null));
+          const results = await Promise.all(promises);
+
+          results.forEach(anime => {
+            if (anime) {
+              tempMap[anime.anime_id] = anime;
+            }
+          });
+
+          // Update state progressively
+          setAnimeData({ ...tempMap });
+          // Small delay to be nice to API
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+      } catch (error) {
+        console.error('Failed to load anime details:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAnimeDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries]);
 
   const getEntriesByStatus = (status: string) => {
     return entries.filter((entry) => entry.status === status);
@@ -97,7 +124,7 @@ export default function WatchlistPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="mb-4 text-4xl font-bold">My Watchlist</h1>
-          
+
           {/* Stats Cards */}
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
@@ -167,23 +194,8 @@ export default function WatchlistPage() {
               <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
-            
-            <div className="flex items-center gap-1 rounded-lg border border-border p-1">
-              <Button
-                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
+
+
           </div>
         </div>
 
@@ -216,7 +228,6 @@ export default function WatchlistPage() {
             ) : (
               <AnimeGrid
                 anime={getAnimeForEntries(entries)}
-                variant={viewMode}
               />
             )}
           </TabsContent>
@@ -224,35 +235,30 @@ export default function WatchlistPage() {
           <TabsContent value="watching" className="mt-6">
             <AnimeGrid
               anime={getAnimeForEntries(watchingEntries)}
-              variant={viewMode}
             />
           </TabsContent>
 
           <TabsContent value="completed" className="mt-6">
             <AnimeGrid
               anime={getAnimeForEntries(completedEntries)}
-              variant={viewMode}
             />
           </TabsContent>
 
           <TabsContent value="plan_to_watch" className="mt-6">
             <AnimeGrid
               anime={getAnimeForEntries(planToWatchEntries)}
-              variant={viewMode}
             />
           </TabsContent>
 
           <TabsContent value="on_hold" className="mt-6">
             <AnimeGrid
               anime={getAnimeForEntries(onHoldEntries)}
-              variant={viewMode}
             />
           </TabsContent>
 
           <TabsContent value="dropped" className="mt-6">
             <AnimeGrid
               anime={getAnimeForEntries(droppedEntries)}
-              variant={viewMode}
             />
           </TabsContent>
         </Tabs>

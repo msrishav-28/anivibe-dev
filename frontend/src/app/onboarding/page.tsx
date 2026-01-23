@@ -2,23 +2,22 @@
 
 import { useRouter } from 'next/navigation';
 import { OnboardingFlow } from '@/components/features/onboarding-flow';
-import { useAuthStore } from '@/store/auth-store';
 import { useUIStore } from '@/store/ui-store';
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  // const { user } = useAuthStore(); // Unused
   const { addToast } = useUIStore();
 
   const handleComplete = async (preferences: any) => {
     try {
       // Save user preferences (would call API here)
       console.log('User preferences:', preferences);
-      
+
       addToast({
         title: 'Welcome to AniVibe!',
         description: 'Your preferences have been saved. Enjoy personalized recommendations!',
-        variant: 'success',
+        type: 'success',
       });
 
       // Redirect to explore page
@@ -27,7 +26,7 @@ export default function OnboardingPage() {
       addToast({
         title: 'Error',
         description: 'Failed to save preferences',
-        variant: 'error',
+        type: 'error',
       });
     }
   };

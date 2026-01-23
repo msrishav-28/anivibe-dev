@@ -8,10 +8,9 @@ import type { Anime, SemanticSearchResult } from '@/types';
 
 export default function SearchPage() {
   const [results, setResults] = useState<Anime[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  const handleSearch = (query: string, searchResults: SemanticSearchResult[]) => {
+  const handleSearch = (_query: string, searchResults: SemanticSearchResult[]) => {
     setHasSearched(true);
     // Convert search results to Anime objects
     const animeResults = searchResults.map((result) => result.anime);
@@ -43,7 +42,7 @@ export default function SearchPage() {
                 <h2 className="mb-6 text-2xl font-bold">
                   Found {results.length} results
                 </h2>
-                <AnimeGrid anime={results} variant="grid" />
+                <AnimeGrid anime={results} />
               </>
             ) : (
               <Card>

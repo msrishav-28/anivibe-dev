@@ -1,18 +1,28 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+// motion removed
 
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLDivElement> & { variant?: 'default' | 'holo' }
+>(({ className, variant = 'default', ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      'rounded-lg border border-border bg-card text-card-foreground shadow-card',
+      'rounded-xl border border-white/10 bg-card text-card-foreground shadow-xl transition-all duration-300',
+      variant === 'holo' && 'relative overflow-hidden hover:scale-[1.02] hover:shadow-glow group',
+      variant === 'default' && 'glassmorphism',
       className
     )}
     {...props}
-  />
+  >
+    {variant === 'holo' && (
+      <div className="absolute inset-0 bg-gradient-holo opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-10" />
+    )}
+    <div className="relative z-0">
+      {props.children}
+    </div>
+  </div>
 ));
 Card.displayName = 'Card';
 
@@ -35,7 +45,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      'text-2xl font-semibold leading-none tracking-tight',
+      'font-heading text-2xl font-bold leading-none tracking-tight',
       className
     )}
     {...props}
@@ -49,7 +59,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-muted-foreground', className)}
+    className={cn('text-sm text-muted-foreground font-sans', className)}
     {...props}
   />
 ));

@@ -15,6 +15,8 @@ const badgeVariants = cva(
         destructive:
           'border-transparent bg-error text-white hover:bg-red-600',
         outline: 'text-foreground',
+        neon: 'border-primary-500 text-primary-300 bg-primary-500/10 shadow-[0_0_10px_rgba(139,92,246,0.5)] border',
+        glitch: 'bg-black text-white border border-white/20 uppercase tracking-widest font-mono',
         success: 'border-transparent bg-success text-white',
         warning: 'border-transparent bg-warning text-white',
         info: 'border-transparent bg-info text-white',
@@ -28,7 +30,7 @@ const badgeVariants = cva(
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {
+  VariantProps<typeof badgeVariants> {
   removable?: boolean;
   onRemove?: () => void;
 }

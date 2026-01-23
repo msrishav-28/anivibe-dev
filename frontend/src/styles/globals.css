@@ -1,51 +1,67 @@
+/* Fonts loaded in layout.tsx via next/font and CDN link */
+@import url('https://fonts.googleapis.com/css2?family=Zen+Tokyo+Zoo&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* 
+      NEO-TOKYO PALETTE 
+      Base: The Void (Deep Black)
+    */
+    --background: 0 0% 1.96%;
+    /* #050505 - DEEP VOID */
+    --foreground: 0 0% 100%;
+    /* #FFFFFF */
+
+    --card: 0 0% 1.96%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 0 0% 1.96%;
+    --popover-foreground: 0 0% 100%;
+
     --primary: 262 83% 58%;
+    /* Spirit: Electric Violet */
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+
+    --secondary: 184 100% 50%;
+    /* Tech: Neon Cyan */
+    --secondary-foreground: 0 0% 0%;
+
+    --muted: 262 30% 15%;
+    /* Darker violet mute */
+    --muted-foreground: 262 10% 65%;
+
+    --accent: 184 100% 50%;
+    --accent-foreground: 0 0% 0%;
+
+    --destructive: 340 100% 50%;
+    /* Hype: Crimson */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 20%;
+    /* Dark Grey Border */
+    --input: 0 0% 20%;
     --ring: 262 83% 58%;
-    --radius: 0.5rem;
+
+    --radius: 1rem;
+    /* More rounded for pills */
+
+    /* Font Variables */
+    --font-clash: 'Clash Display', sans-serif;
+    --font-satoshi: 'Satoshi', sans-serif;
+    --font-outfit: 'Outfit', sans-serif;
+    --font-zen: 'Zen Tokyo Zoo', cursive;
+    --font-jetbrains-mono: 'JetBrains Mono', monospace;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 262 83% 58%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 262 83% 58%;
+    --background: 0 0% 1.96%;
+    --foreground: 0 0% 100%;
+    /* Same as root because this is a dark-only app */
   }
 }
 
@@ -53,200 +69,107 @@
   * {
     @apply border-border;
   }
-  
+
   html {
     @apply scroll-smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: #050505;
+    /* Fallback */
   }
-  
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    overflow-x: hidden;
   }
 
   /* Focus visible for accessibility */
   *:focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
-  }
-
-  /* Scrollbar styling */
-  ::-webkit-scrollbar {
-    @apply w-2 h-2;
-  }
-
-  ::-webkit-scrollbar-track {
-    @apply bg-background;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/30 rounded-full;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/50;
-  }
-
-  /* Selection styling */
-  ::selection {
-    @apply bg-primary/20 text-primary-foreground;
+    @apply outline-none ring-2 ring-purple-500 ring-offset-2 ring-offset-background;
   }
 }
 
 @layer utilities {
-  /* Glass morphism effect */
+
+  /* 
+    GLASSMORPHISM 2.0 (Etched Glass)
+    The "Frosted Acrylic" look.
+  */
   .glassmorphism {
-    @apply backdrop-blur-xl bg-background/60 border border-border/50;
+    @apply bg-black/40 backdrop-blur-xl border border-white/10;
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02);
   }
 
-  /* Gradient text */
-  .gradient-text {
-    @apply bg-gradient-to-r from-primary via-accent-pink to-accent-blue bg-clip-text text-transparent;
+  /* 
+    GLOBAL ATMOSPHERE
+    Film Grain & Scanlines
+  */
+  .film-grain {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9998;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+    opacity: 0.04;
+    mix-blend-mode: overlay;
   }
 
-  /* Animated gradient background */
-  .gradient-animated {
-    background: linear-gradient(
-      -45deg,
-      theme('colors.primary.500'),
-      theme('colors.accent.pink'),
-      theme('colors.accent.blue'),
-      theme('colors.primary.500')
-    );
-    background-size: 400% 400%;
-    animation: gradient 15s ease infinite;
+  .scanlines {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    background: repeating-linear-gradient(0deg,
+        transparent,
+        transparent 1px,
+        rgba(255, 255, 255, 0.03) 2px);
   }
 
-  @keyframes gradient {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
+  .vignette {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9997;
+    background: radial-gradient(circle at center, transparent 0%, #000000 100%);
+    opacity: 0.6;
   }
 
-  /* Shimmer effect for skeleton loaders */
-  .shimmer {
-    @apply relative overflow-hidden;
+  /* Text Gradients */
+  .text-gradient-spirit {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-primary-600;
   }
 
-  .shimmer::before {
-    content: '';
-    @apply absolute inset-0 -translate-x-full;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.1) 50%,
-      transparent 100%
-    );
-    animation: shimmer 1.5s infinite;
+  .text-gradient-tech {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-secondary to-blue-500;
   }
 
-  @keyframes shimmer {
-    100% {
-      transform: translateX(100%);
-    }
+  .text-gradient-hype {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-pink-600;
   }
 
-  /* Hide scrollbar but keep functionality */
-  .scrollbar-hide {
+  /* Utilities */
+  .center-absolute {
+    @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
+  }
+
+  .hide-scrollbar {
     -ms-overflow-style: none;
+    /* IE and Edge */
     scrollbar-width: none;
+    /* Firefox */
   }
 
-  .scrollbar-hide::-webkit-scrollbar {
+  .hide-scrollbar::-webkit-scrollbar {
     display: none;
-  }
-
-  /* Custom container with breakpoints */
-  .container-custom {
-    @apply mx-auto px-4 sm:px-6 lg:px-8;
-    max-width: 1536px;
-  }
-
-  /* Aspect ratios for anime posters */
-  .aspect-poster {
-    aspect-ratio: 2 / 3;
-  }
-
-  .aspect-banner {
-    aspect-ratio: 16 / 9;
-  }
-
-  /* Truncate with ellipsis */
-  .line-clamp-1 {
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .line-clamp-3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  /* Safe area padding for mobile notches */
-  .safe-top {
-    padding-top: env(safe-area-inset-top);
-  }
-
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  .safe-left {
-    padding-left: env(safe-area-inset-left);
-  }
-
-  .safe-right {
-    padding-right: env(safe-area-inset-right);
-  }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  :root {
-    --border: 222.2 84% 20%;
-  }
-
-  .dark {
-    --border: 210 40% 80%;
-  }
-}
-
-/* Print styles */
-@media print {
-  body {
-    @apply bg-white text-black;
-  }
-
-  .no-print {
-    display: none !important;
   }
 }

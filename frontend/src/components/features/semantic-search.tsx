@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Sparkles, X } from 'lucide-react';
+import { Search, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/lib/api-client';
-import { useDebounce } from '@/hooks/use-debounce';
+// useDebounce removed
 import type { SemanticSearchResult } from '@/types';
 
 interface SemanticSearchProps {
@@ -33,7 +33,7 @@ export function SemanticSearch({
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [queryUnderstanding, setQueryUnderstanding] = useState<any>(null);
-  const debouncedQuery = useDebounce(query, 500);
+  // debouncedQuery removed
 
   const handleSearch = async (searchQuery: string) => {
     if (!searchQuery.trim()) return;
@@ -41,12 +41,14 @@ export function SemanticSearch({
     setIsSearching(true);
     try {
       const results = await api.semanticSearch(searchQuery);
-      
+
       // Extract query understanding from first result if available
-      if (results.length > 0 && results[0].query_understanding) {
-        setQueryUnderstanding(results[0].query_understanding);
+      // Extract query understanding from first result if available
+      const firstResult = results[0];
+      if (firstResult?.query_understanding) {
+        setQueryUnderstanding(firstResult.query_understanding);
       }
-      
+
       onSearch(searchQuery, results);
     } catch (error) {
       console.error('Search error:', error);

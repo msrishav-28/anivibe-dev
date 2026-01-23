@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { api } from '@/lib/api-client';
+import { GlitchText } from '@/components/ui/glitch-text';
 
 export default function TasteProfilePage() {
   const { user } = useAuthStore();
@@ -47,13 +48,13 @@ export default function TasteProfilePage() {
 
   return (
     <div className="min-h-screen">
-      <div className="container-custom py-8">
+      <div className="container-custom py-12">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-10 flex items-center justify-between">
           <div>
-            <h1 className="mb-2 text-4xl font-bold">Your Anime Taste Profile</h1>
-            <p className="text-lg text-muted-foreground">
-              Insights into your anime preferences and viewing habits
+            <GlitchText text="NEURAL SYNCHRONIZATION" as="h1" className="mb-2 text-4xl font-bold font-heading" />
+            <p className="text-muted-foreground">
+              Analysis of your anime preferences and viewing habits
             </p>
           </div>
           <Button variant="outline" onClick={loadProfile} disabled={isLoading}>

@@ -23,8 +23,11 @@ export function useIntersectionObserver({
     if (freezeOnceVisible && isVisible) return;
 
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
+      (entries) => {
+        const entry = entries[0];
+        if (entry) {
+          setIsVisible(entry.isIntersecting);
+        }
       },
       { threshold, root, rootMargin }
     );

@@ -8,7 +8,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   login: (email: string, password: string) => Promise<void>;
   signup: (username: string, email: string, password: string) => Promise<void>;
@@ -29,7 +29,7 @@ export const useAuthStore = create<AuthState>()(
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
         try {
-          const { user, access_token } = await api.login(email, password);
+          const { user } = await api.login(email, password);
           set({ user, isAuthenticated: true, isLoading: false });
         } catch (error: any) {
           set({
@@ -43,7 +43,7 @@ export const useAuthStore = create<AuthState>()(
       signup: async (username: string, email: string, password: string) => {
         set({ isLoading: true, error: null });
         try {
-          const user = await api.signup(username, email, password);
+          await api.signup(username, email, password);
           // After signup, need to login
           await get().login(email, password);
         } catch (error: any) {

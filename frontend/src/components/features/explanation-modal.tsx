@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -25,13 +25,7 @@ export function ExplanationModal({ animeId, isOpen, onClose }: ExplanationModalP
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState('hybrid');
 
-  useEffect(() => {
-    if (isOpen && animeId) {
-      loadExplanation();
-    }
-  }, [isOpen, animeId, selectedMethod]);
-
-  const loadExplanation = async () => {
+  const loadExplanation = useCallback(async () => {
     setIsLoading(true);
     try {
       const result = await api.explainRecommendation(animeId, selectedMethod);
@@ -41,7 +35,13 @@ export function ExplanationModal({ animeId, isOpen, onClose }: ExplanationModalP
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [animeId, selectedMethod]);
+
+  useEffect(() => {
+    if (isOpen && animeId) {
+      loadExplanation();
+    }
+  }, [isOpen, animeId, loadExplanation]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

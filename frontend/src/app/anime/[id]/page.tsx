@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Star, Play, Plus, Check, Share2, Heart } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Star, Play, Plus, Check, Share2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { GlitchText } from '@/components/ui/glitch-text';
 import { AnimeCard } from '@/components/features/anime-card';
 import { api } from '@/lib/api-client';
 import { useWatchlistStore } from '@/store/watchlist-store';
-import { genreColors } from '@/config/tokens';
 import type { Anime } from '@/types';
 
 interface AnimeDetailPageProps {
@@ -26,24 +25,25 @@ export default function AnimeDetailPage({ params }: AnimeDetailPageProps) {
   const isInWatchlist = entries.some((entry) => entry.anime_id === parseInt(params.id));
 
   useEffect(() => {
+    const loadAnimeDetails = async () => {
+      setIsLoading(true);
+      try {
+        const [animeData, similar] = await Promise.all([
+          api.getAnime(parseInt(params.id)),
+          api.getSimilarAnime(parseInt(params.id), 12),
+        ]);
+        setAnime(animeData);
+        // Map recommendations to extract the anime object, handling potential type mismatches
+        setSimilarAnime(similar.map((item: any) => item.anime || item));
+      } catch (error) {
+        console.error('Failed to load anime:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     loadAnimeDetails();
   }, [params.id]);
-
-  const loadAnimeDetails = async () => {
-    setIsLoading(true);
-    try {
-      const [animeData, similar] = await Promise.all([
-        api.getAnime(parseInt(params.id)),
-        api.getSimilarAnime(parseInt(params.id), 12),
-      ]);
-      setAnime(animeData);
-      setSimilarAnime(similar);
-    } catch (error) {
-      console.error('Failed to load anime:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleAddToWatchlist = () => {
     if (anime) {
@@ -65,220 +65,168 @@ export default function AnimeDetailPage({ params }: AnimeDetailPageProps) {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <div className="relative h-[500px] overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0">
-          <Image
-            src={anime.image_url}
-            alt={anime.title}
-            fill
-            className="object-cover blur-3xl scale-110 opacity-30"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/20" />
-        </div>
-
-        {/* Content */}
-        <div className="container-custom relative h-full flex items-end pb-8">
-          <div className="flex gap-8">
-            {/* Poster */}
-            <div className="relative h-80 w-56 flex-shrink-0 overflow-hidden rounded-lg shadow-2xl">
-              <Image
-                src={anime.image_url}
-                alt={anime.title}
-                fill
-                className="object-cover"
-              />
-            </div>
-
-            {/* Info */}
-            <div className="flex flex-col justify-end flex-1">
-              <div className="mb-4 flex flex-wrap gap-2">
-                {anime.genres.map((genre) => (
-                  <Badge
-                    key={genre}
-                    style={{
-                      backgroundColor: genreColors[genre] + '40',
-                      color: genreColors[genre],
-                    }}
-                  >
-                    {genre}
-                  </Badge>
-                ))}
-              </div>
-
-              <h1 className="mb-2 text-4xl font-bold">{anime.title}</h1>
-              
-              <div className="mb-4 flex items-center gap-4 text-sm text-muted-foreground">
-                <span>{anime.type}</span>
-                <span>•</span>
-                <span>{anime.year}</span>
-                {anime.episodes && (
-                  <>
-                    <span>•</span>
-                    <span>{anime.episodes} Episodes</span>
-                  </>
-                )}
-                <span>•</span>
-                <span>{anime.status}</span>
-              </div>
-
-              <div className="mb-6 flex items-center gap-2">
-                <Star className="h-6 w-6 fill-yellow-400 text-yellow-400" />
-                <span className="text-2xl font-bold">{anime.score.toFixed(1)}</span>
-                <span className="text-sm text-muted-foreground">
-                  ({anime.scored_by?.toLocaleString()} users)
-                </span>
-              </div>
-
-              <div className="flex gap-3">
-                {anime.trailer_url && (
-                  <Button size="lg" variant="primary">
-                    <Play className="mr-2 h-5 w-5 fill-white" />
-                    Watch Trailer
-                  </Button>
-                )}
-                <Button
-                  size="lg"
-                  variant={isInWatchlist ? 'secondary' : 'outline'}
-                  onClick={handleAddToWatchlist}
-                >
-                  {isInWatchlist ? (
-                    <>
-                      <Check className="mr-2 h-5 w-5" />
-                      In My List
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="mr-2 h-5 w-5" />
-                      Add to List
-                    </>
-                  )}
-                </Button>
-                <Button size="lg" variant="ghost">
-                  <Heart className="h-5 w-5" />
-                </Button>
-                <Button size="lg" variant="ghost">
-                  <Share2 className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Glass Pane Layout - Neo-Tokyo Pivot */}
+      {/* 1. Background Layer (Blurred Poster) */}
+      <div className="fixed inset-0 z-0">
+        <Image
+          src={anime.image_url}
+          alt={anime.title}
+          fill
+          className="object-cover opacity-60 blur-3xl saturate-150"
+          priority
+        />
+        <div className="absolute inset-0 bg-black/60" /> {/* Dimmer */}
       </div>
 
-      {/* Details Tabs */}
-      <div className="container-custom py-8">
-        <Tabs defaultValue="synopsis">
-          <TabsList>
-            <TabsTrigger value="synopsis">Synopsis</TabsTrigger>
-            <TabsTrigger value="characters">Characters</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-            <TabsTrigger value="stats">Stats</TabsTrigger>
-            <TabsTrigger value="similar">Similar</TabsTrigger>
-          </TabsList>
+      {/* 2. Foreground Glass Sheet */}
+      <div className="relative z-10 min-h-screen pt-[30vh]">
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="min-h-[70vh] rounded-t-[3rem] border-t border-white/10 bg-black/80 backdrop-blur-md px-6 pt-12 pb-32 md:px-12"
+        >
+          <div className="container-custom max-w-5xl mx-auto">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row gap-8 mb-12">
+              {/* Poster Card (Floating) */}
+              <motion.div
+                className="relative -mt-32 h-[450px] w-[300px] flex-shrink-0 rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10 mx-auto md:mx-0"
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.4 }}
+              >
+                <Image
+                  src={anime.image_url}
+                  alt={anime.title}
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+              </motion.div>
 
-          <TabsContent value="synopsis" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Synopsis</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  {anime.synopsis || 'No synopsis available.'}
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              {/* Title & Actions */}
+              <div className="flex-1 flex flex-col justify-end pt-4">
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {anime.genres.map((genre) => (
+                    <Badge key={genre} variant="secondary" className="bg-primary/10 text-primary border-primary/20 backdrop-blur-md">
+                      {genre}
+                    </Badge>
+                  ))}
+                </div>
 
-          <TabsContent value="characters" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Characters & Voice Actors</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Character information coming soon...
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                <GlitchText
+                  text={anime.title}
+                  as="h1"
+                  className="text-4xl md:text-6xl text-white mb-2 leading-tight"
+                />
 
-          <TabsContent value="reviews" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Reviews</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Reviews coming soon...
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                <div className="flex items-center gap-4 text-muted-foreground mb-8 font-mono text-sm">
+                  <span>{anime.year}</span>
+                  <span>•</span>
+                  <span>{anime.type}</span>
+                  <span>•</span>
+                  <span>{anime.episodes || '?'} eps</span>
+                  <span>•</span>
+                  <span className="flex items-center text-yellow-400 gap-1">
+                    <Star className="w-4 h-4 fill-current" />
+                    {anime.score}
+                  </span>
+                </div>
 
-          <TabsContent value="stats" className="mt-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Statistics</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Score</span>
-                    <span className="font-semibold">{anime.score.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Ranked</span>
-                    <span className="font-semibold">#{anime.rank || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Popularity</span>
-                    <span className="font-semibold">#{anime.popularity || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Members</span>
-                    <span className="font-semibold">
-                      {anime.members?.toLocaleString() || 'N/A'}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Type</span>
-                    <span className="font-semibold">{anime.type}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Episodes</span>
-                    <span className="font-semibold">{anime.episodes || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Status</span>
-                    <span className="font-semibold">{anime.status}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Aired</span>
-                    <span className="font-semibold">{anime.year}</span>
-                  </div>
-                </CardContent>
-              </Card>
+                <div className="flex flex-wrap gap-4">
+                  {anime.trailer_url && (
+                    <Button
+                      size="lg"
+                      className="h-14 px-8 rounded-xl bg-white text-black hover:bg-white/90 font-bold tracking-wide shadow-glow"
+                      onClick={() => window.open(anime.trailer_url, '_blank')}
+                    >
+                      <Play className="mr-2 h-5 w-5 fill-current" />
+                      WATCH TRAILER
+                    </Button>
+                  )}
+                  <Button
+                    size="lg"
+                    variant={isInWatchlist ? 'secondary' : 'secondary'}
+                    className="h-14 px-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10"
+                    onClick={handleAddToWatchlist}
+                  >
+                    {isInWatchlist ? <Check className="mr-2 h-5 w-5" /> : <Plus className="mr-2 h-5 w-5" />}
+                    {isInWatchlist ? 'In Library' : 'Add to List'}
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-14 w-14 rounded-xl border border-white/10 hover:bg-white/5">
+                    <Share2 className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
             </div>
-          </TabsContent>
 
-          <TabsContent value="similar" className="mt-6">
-            <h3 className="mb-4 text-xl font-semibold">Similar Anime</h3>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-              {similarAnime.map((item) => (
-                <AnimeCard key={item.anime_id} anime={item} variant="grid" />
-              ))}
+            {/* Content Tabs / Info */}
+            <div className="grid md:grid-cols-[2fr_1fr] gap-12">
+              <div className="space-y-8">
+                <section>
+                  <h3 className="text-xl font-heading mb-4 text-white/50 uppercase tracking-widest">Synopsis</h3>
+                  <p className="text-lg leading-relaxed text-muted-foreground">
+                    {anime.synopsis}
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-xl font-heading mb-4 text-white/50 uppercase tracking-widest">The Vibe</h3>
+                  <div className="p-6 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                        <Sparkles className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="text-white font-bold">98% Match</div>
+                        <div className="text-sm text-muted-foreground">Based on your taste profile</div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-white/70 italic">
+                      &quot;You&apos;ll love this because it features high-stakes psychological battles similar to your favorite, <span className="text-primary">Death Note</span>.&quot;
+                    </p>
+                  </div>
+                </section>
+              </div>
+
+              {/* Sidebar Info (Studio/etc) */}
+              <div className="space-y-6">
+                <div className="p-6 rounded-2xl bg-black/40 border border-white/5">
+                  <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Information</h4>
+                  <div className="space-y-4 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Studio</span>
+                      <span className="text-white">{anime.studios?.[0] || 'Unknown'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Status</span>
+                      <span className="text-white">{anime.status}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Duration</span>
+                      <span className="text-white">{anime.duration}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Rating</span>
+                      <span className="text-white">{anime.rating}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+
+            {/* Similar Anime Section (Optional, could just use Recommendations) */}
+            <div className="mt-16">
+              <h3 className="text-xl font-heading mb-8 text-white uppercase tracking-widest">Similar Vibes</h3>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {similarAnime.map((item) => (
+                  <AnimeCard key={item.anime_id} anime={item} variant="grid" />
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </motion.div>
       </div>
     </div>
   );

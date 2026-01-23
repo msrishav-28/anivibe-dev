@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/store/auth-store';
 import { useUIStore } from '@/store/ui-store';
+import { GlitchText } from '@/components/ui/glitch-text';
 
 export default function SettingsPage() {
   const { user } = useAuthStore();
@@ -26,62 +27,65 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="container-custom py-8">
-        <h1 className="mb-8 text-4xl font-bold">Settings</h1>
+      <div className="container-custom py-12">
+        <div className="mb-10">
+          <GlitchText text="SYSTEM CONFIG" as="h1" className="text-4xl font-bold mb-2" />
+          <p className="text-muted-foreground">Customize your interface parameters</p>
+        </div>
 
         <Tabs defaultValue="profile">
-          <TabsList>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="appearance">Appearance</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="privacy">Privacy</TabsTrigger>
+          <TabsList className="mb-6 bg-black/40 border border-white/10 p-1 rounded-xl">
+            <TabsTrigger value="profile" className="rounded-lg data-[state=active]:bg-primary-500 data-[state=active]:text-white">Profile</TabsTrigger>
+            <TabsTrigger value="appearance" className="rounded-lg data-[state=active]:bg-primary-500 data-[state=active]:text-white">Appearance</TabsTrigger>
+            <TabsTrigger value="notifications" className="rounded-lg data-[state=active]:bg-primary-500 data-[state=active]:text-white">Notifications</TabsTrigger>
+            <TabsTrigger value="privacy" className="rounded-lg data-[state=active]:bg-primary-500 data-[state=active]:text-white">Privacy</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile" className="mt-6">
-            <Card>
+            <Card variant="holo">
               <CardHeader>
                 <CardTitle>Profile Settings</CardTitle>
                 <CardDescription>Manage your profile information</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-20 w-20">
+                <div className="flex items-center gap-6">
+                  <Avatar className="h-24 w-24 border-2 border-primary-500/50 shadow-glow">
                     <AvatarImage src={user.avatar_url} />
-                    <AvatarFallback className="text-2xl">
+                    <AvatarFallback className="text-3xl bg-primary-900 text-white">
                       {username.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <Button variant="outline">Change Avatar</Button>
+                  <Button variant="outline" className="border-primary-500/30 hover:border-primary-500 text-primary-300">Change Avatar</Button>
                 </div>
                 <Input label="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
                 <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                <Button>Save Changes</Button>
+                <Button variant="spirit">Save Changes</Button>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="appearance" className="mt-6">
-            <Card>
+            <Card variant="holo">
               <CardHeader>
                 <CardTitle>Appearance</CardTitle>
                 <CardDescription>Customize how AniVibe looks</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
                   <div>
-                    <div className="font-medium">Theme</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="font-bold text-white mb-1">Theme</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider">
                       Current: {theme}
                     </div>
                   </div>
-                  <Button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+                  <Button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} variant="ghost">
                     Toggle Theme
                   </Button>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
                   <div>
-                    <div className="font-medium">Animations</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="font-bold text-white mb-1">Animations</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider">
                       Enable smooth transitions
                     </div>
                   </div>
@@ -92,23 +96,23 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="notifications" className="mt-6">
-            <Card>
+            <Card variant="holo">
               <CardHeader>
                 <CardTitle>Notifications</CardTitle>
                 <CardDescription>Control notification preferences</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
                   <div>
-                    <div className="font-medium">Email Notifications</div>
-                    <div className="text-sm text-muted-foreground">Receive updates via email</div>
+                    <div className="font-bold text-white mb-1">Email Notifications</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Receive updates via email</div>
                   </div>
                   <Switch defaultChecked />
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
                   <div>
-                    <div className="font-medium">Weekly Digest</div>
-                    <div className="text-sm text-muted-foreground">Get weekly anime summaries</div>
+                    <div className="font-bold text-white mb-1">Weekly Digest</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Get weekly anime summaries</div>
                   </div>
                   <Switch />
                 </div>
@@ -117,23 +121,23 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="privacy" className="mt-6">
-            <Card>
+            <Card variant="holo">
               <CardHeader>
                 <CardTitle>Privacy</CardTitle>
                 <CardDescription>Manage your privacy settings</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
                   <div>
-                    <div className="font-medium">Public Profile</div>
-                    <div className="text-sm text-muted-foreground">Make profile visible to everyone</div>
+                    <div className="font-bold text-white mb-1">Public Profile</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Make profile visible to everyone</div>
                   </div>
                   <Switch defaultChecked />
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
                   <div>
-                    <div className="font-medium">Show Watchlist</div>
-                    <div className="text-sm text-muted-foreground">Let others see your list</div>
+                    <div className="font-bold text-white mb-1">Show Watchlist</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Let others see your list</div>
                   </div>
                   <Switch defaultChecked />
                 </div>

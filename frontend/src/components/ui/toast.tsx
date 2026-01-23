@@ -8,11 +8,11 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: 'border bg-background text-foreground',
-        success: 'border-success bg-success/10 text-success',
-        error: 'border-error bg-error/10 text-error',
-        warning: 'border-warning bg-warning/10 text-warning',
-        info: 'border-info bg-info/10 text-info',
+        default: 'border border-white/10 bg-black/80 backdrop-blur-md text-white shadow-lg',
+        success: 'border-success bg-success/10 text-success shadow-[0_0_15px_rgba(34,197,94,0.3)] backdrop-blur-md',
+        error: 'border-error bg-error/10 text-error shadow-[0_0_15px_rgba(239,68,68,0.3)] backdrop-blur-md',
+        warning: 'border-warning bg-warning/10 text-warning shadow-[0_0_15px_rgba(234,179,8,0.3)] backdrop-blur-md',
+        info: 'border-info bg-info/10 text-info shadow-[0_0_15px_rgba(59,130,246,0.3)] backdrop-blur-md',
       },
     },
     defaultVariants: {
@@ -23,7 +23,7 @@ const toastVariants = cva(
 
 export interface ToastProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof toastVariants> {
+  VariantProps<typeof toastVariants> {
   title?: string;
   description?: string;
   onClose?: () => void;
