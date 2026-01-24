@@ -136,6 +136,7 @@ class Anime(Base):
         """Convert to dictionary"""
         data = {
             "id": self.id,
+            "anime_id": self.id,  # Alias for frontend compatibility
             "title": self.title,
             "title_english": self.title_english,
             "title_japanese": self.title_japanese,

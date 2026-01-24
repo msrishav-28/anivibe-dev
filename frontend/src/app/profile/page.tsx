@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useAuthStore } from '@/store/auth-store';
 import { useWatchlistStore } from '@/store/watchlist-store';
-import { api } from '@/lib/api-client';
+import { useUserStats } from '@/hooks/use-queries';
 import { GlitchText } from '@/components/ui/glitch-text';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,24 +29,9 @@ const MotionCard = motion(Card);
 export default function ProfilePage() {
   const { user } = useAuthStore();
   const { entries } = useWatchlistStore();
-  const [stats, setStats] = useState<any>(null);
 
-  useEffect(() => {
-    if (user) {
-      loadUserStats();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  const loadUserStats = async () => {
-    if (!user?.user_id) return;
-    try {
-      const userStats = await api.getUserStats(user.user_id);
-      setStats(userStats);
-    } catch (error) {
-      console.error('Failed to load stats:', error);
-    }
-  };
+  // $10k Upgrade: Use React Query Hook
+  const { data: stats, isLoading } = useUserStats(user?.user_id);
 
   if (!user) {
     return (

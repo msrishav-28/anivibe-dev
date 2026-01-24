@@ -10,6 +10,27 @@ from app.services.semantic_search import semantic_vibe_search
 
 router = APIRouter()
 
+from pydantic import BaseModel
+
+class VisualSearchRequest(BaseModel):
+    image_url: str
+
+@router.post("/visual", response_model=dict)
+async def visual_search(
+    request: VisualSearchRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Visual search using image URL (Stub for now)
+    """
+    # Mock response
+    return {
+        "results": [
+            {"id": 1, "title": "Cowboy Bebop", "similarity": 0.95, "image_url": "https://example.com/bebop.jpg"},
+            {"id": 2, "title": "Trigun", "similarity": 0.88, "image_url": "https://example.com/trigun.jpg"}
+        ]
+    }
+
 
 @router.post("/semantic", response_model=RecommendationBatchResponse)
 async def semantic_search(

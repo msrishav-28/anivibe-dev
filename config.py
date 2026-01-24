@@ -34,37 +34,28 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
     
-    # PostgreSQL Database
-    postgres_host: str = "localhost"
-    postgres_port: int = 5432
-    postgres_user: str = "anivibe"
-    postgres_password: str
-    postgres_db: str = "anivibe_db"
+    # ===========================================
+    # SUPABASE CONFIGURATION
+    # ===========================================
+    supabase_url: str = Field(..., description="Supabase project URL")
+    supabase_anon_key: str = Field(..., description="Supabase anon/public key")
+    supabase_service_key: str = Field(..., description="Supabase service role key (server-side only)")
     
     @property
     def database_url(self) -> str:
-        """Construct async PostgreSQL database URL"""
+        """Construct Supabase PostgreSQL connection URL via pooler"""
+        # Extract project ref from URL (e.g., "xxxxx" from "https://xxxxx.supabase.co")
+        project_ref = self.supabase_url.replace("https://", "").split(".")[0]
+        # Use transaction pooler for better connection management
+        # Password is the service key for direct database access
         return (
-            f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
-            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+            f"postgresql+asyncpg://postgres.{project_ref}:{self.supabase_service_key}"
+            f"@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
         )
     
-    # MongoDB
-    mongodb_host: str = "localhost"
-    mongodb_port: int = 27017
-    mongodb_user: str = "anivibe"
-    mongodb_password: str
-    mongodb_db: str = "anivibe_embeddings"
-    
-    @property
-    def mongodb_url(self) -> str:
-        """Construct MongoDB connection URL"""
-        return (
-            f"mongodb://{self.mongodb_user}:{self.mongodb_password}"
-            f"@{self.mongodb_host}:{self.mongodb_port}/{self.mongodb_db}"
-        )
-    
-    # Redis
+    # ===========================================
+    # REDIS CONFIGURATION
+    # ===========================================
     redis_host: str = "localhost"
     redis_port: int = 6379
     redis_password: Optional[str] = None
@@ -80,24 +71,30 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/0"
     
-    # External APIs
+    # ===========================================
+    # EXTERNAL APIS
+    # ===========================================
     jikan_api_url: str = "https://api.jikan.moe/v4"
     anilist_api_url: str = "https://graphql.anilist.co"
     gemini_api_key: Optional[str] = None
     openai_api_key: Optional[str] = None
     
-    # OAuth
+    # OAuth (for MAL/AniList integration)
     mal_client_id: Optional[str] = None
     mal_client_secret: Optional[str] = None
     anilist_client_id: Optional[str] = None
     anilist_client_secret: Optional[str] = None
     anilist_redirect_uri: str = "http://localhost:8000/api/v1/auth/anilist/callback"
     
-    # Rate Limiting
+    # ===========================================
+    # RATE LIMITING
+    # ===========================================
     rate_limit_per_minute: int = 100
     rate_limit_burst: int = 20
     
-    # ML Models
+    # ===========================================
+    # ML MODELS CONFIGURATION
+    # ===========================================
     model_cache_dir: str = "./models/cache"
     embeddings_dir: str = "./data/embeddings"
     
@@ -124,22 +121,32 @@ class Settings(BaseSettings):
     mlflow_tracking_uri: str = "http://localhost:5000"
     mlflow_experiment_name: str = "anivibe-experiments"
     
-    # Logging
+    # ===========================================
+    # LOGGING
+    # ===========================================
     log_level: str = "INFO"
     log_file: str = "logs/anivibe.log"
     
+    # ===========================================
     # CORS
+    # ===========================================
     cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8000"]
     cors_allow_credentials: bool = True
     
-    # File Upload
+    # ===========================================
+    # FILE UPLOAD
+    # ===========================================
     max_upload_size: int = 10485760  # 10MB
     
-    # Batch Processing
+    # ===========================================
+    # BATCH PROCESSING
+    # ===========================================
     batch_size: int = 32
     max_workers: int = 4
     
+    # ===========================================
     # GPU
+    # ===========================================
     use_gpu: bool = True
     gpu_device: str = "cuda:0"
     

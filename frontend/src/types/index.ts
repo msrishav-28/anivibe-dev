@@ -34,7 +34,7 @@ export interface Anime {
 
 // User Types
 export interface User {
-  user_id: number;
+  user_id: string; // UUID
   username: string;
   email: string;
   display_name?: string;
@@ -104,7 +104,7 @@ export interface UserStats {
 // Watchlist Types
 export interface WatchlistEntry {
   entry_id: number;
-  user_id: number;
+  user_id: string; // UUID
   anime_id: number;
   anime: Anime;
   status: 'watching' | 'completed' | 'on_hold' | 'dropped' | 'plan_to_watch';
@@ -162,15 +162,15 @@ export interface SearchFilters {
   popularity?: 'mainstream' | 'balanced' | 'hidden_gems';
 }
 
-export type SortOption = 
-  | 'relevance' 
-  | 'rating_desc' 
-  | 'rating_asc' 
-  | 'popularity_desc' 
-  | 'popularity_asc' 
-  | 'year_desc' 
-  | 'year_asc' 
-  | 'title_asc' 
+export type SortOption =
+  | 'relevance'
+  | 'rating_desc'
+  | 'rating_asc'
+  | 'popularity_desc'
+  | 'popularity_asc'
+  | 'year_desc'
+  | 'year_asc'
+  | 'title_asc'
   | 'title_desc';
 
 export interface SearchResult {
@@ -196,7 +196,7 @@ export interface SemanticSearchResult extends SearchResult {
 // Review Types
 export interface Review {
   review_id: number;
-  user_id: number;
+  user_id: string; // UUID
   user: {
     username: string;
     avatar_url?: string;
@@ -214,7 +214,7 @@ export interface Review {
 
 // Social Types
 export interface Friend {
-  user_id: number;
+  user_id: string; // UUID
   username: string;
   display_name?: string;
   avatar_url?: string;
@@ -226,7 +226,7 @@ export interface Friend {
 
 export interface Activity {
   activity_id: number;
-  user_id: number;
+  user_id: string; // UUID
   user: {
     username: string;
     avatar_url?: string;

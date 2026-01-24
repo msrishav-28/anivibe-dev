@@ -90,13 +90,6 @@
   api.deleteReview(reviewId)
   api.voteReview(reviewId, helpful)
   
-  // Social
-  api.getFriends()
-  api.sendFriendRequest(userId)
-  api.acceptFriendRequest(requestId)
-  api.removeFriend(userId)
-  api.getActivity(userId)
-  
   // Analytics
   api.getUserStats(userId)
   api.getGenreDistribution(userId)

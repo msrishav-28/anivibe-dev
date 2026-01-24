@@ -137,12 +137,18 @@ async def search_anime(
     result = await db.execute(query)
     anime_list = result.scalars().all()
     
+    pages = (total + search.limit - 1) // search.limit if total else 0
+    anime_data = [a.to_dict(include_relationships=True) for a in anime_list]
+    
     return {
-        "results": [a.to_dict(include_relationships=True) for a in anime_list],
+        "items": anime_data,  # Frontend convention
+        "results": anime_data,  # Backward compatibility
         "total": total,
         "page": search.page,
         "limit": search.limit,
-        "pages": (total + search.limit - 1) // search.limit
+        "pages": pages,
+        "has_next": search.page < pages,
+        "has_prev": search.page > 1
     }
 
 
