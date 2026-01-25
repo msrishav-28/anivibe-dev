@@ -45,7 +45,7 @@ export default function RootLayout({
             <Providers>
               <CinematicContainer>
                 <Header />
-                <main className="flex-1 relative z-10">{children}</main>
+                <main className="flex-1 relative z-10 pb-20 md:pb-0">{children}</main>
                 <Footer />
                 <BottomNav />
               </CinematicContainer>

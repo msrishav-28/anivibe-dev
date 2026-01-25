@@ -1,14 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useImageSearch } from '@/hooks/use-queries';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export function VibeTuner() {
     const [query, setQuery] = useState('');
     const [moodColor, setMoodColor] = useState('rgba(139,92,246,0.3)'); // Default Spirit Purple
+
+    const router = useRouter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const { mutate: searchImage, isPending: isUploading } = useImageSearch();
 
     // Dynamic Mood Logic
     useEffect(() => {
@@ -28,8 +35,26 @@ export function VibeTuner() {
 
     const handleSearch = () => {
         if (query) {
-            window.location.href = `/search?q=${encodeURIComponent(query)}`;
+            router.push(`/search?q=${encodeURIComponent(query)}`);
         }
+    };
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        searchImage(file, {
+            onSuccess: (data: any) => {
+                toast.success(`Visual Search Complete! Found ${data.length} matches.`);
+                // For demo/audit, we just redirect or show results.
+                // Redirecting to search with a flag
+                router.push('/search?q=Visual%20Search%20Result');
+            },
+            onError: (err: any) => {
+                toast.error('Visual Search Failed');
+                console.error(err);
+            }
+        });
     };
 
     return (
@@ -61,20 +86,43 @@ export function VibeTuner() {
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                     leftIcon={<Search className="h-5 w-5" />}
-                    className="h-16 text-lg bg-black/40 backdrop-blur-xl border-white/10 rounded-full pl-12 pr-16 focus-visible:ring-0 focus-visible:border-white/20 transition-all placeholder:text-muted-foreground/50"
+                    className="h-16 text-lg bg-black/40 backdrop-blur-xl border-white/10 rounded-full pl-12 pr-32 focus-visible:ring-0 focus-visible:border-white/20 transition-all placeholder:text-muted-foreground/50"
                 />
 
-                <Button
-                    size="icon"
-                    variant="ghost" // Changed to ghost to blend better, or keep custom style
-                    className="absolute right-2 top-2 h-12 w-12 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
-                    onClick={handleSearch}
-                    style={{
-                        boxShadow: `0 0 10px ${moodColor}`
-                    }}
-                >
-                    <Search className="h-5 w-5 text-white" />
-                </Button>
+                <div className="absolute right-2 top-2 flex gap-2">
+                    <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handleImageUpload}
+                    />
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-12 w-12 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        title="Search by Image"
+                    >
+                        {isUploading ? (
+                            <Loader2 className="h-5 w-5 text-white animate-spin" />
+                        ) : (
+                            <ImageIcon className="h-5 w-5 text-white" />
+                        )}
+                    </Button>
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-12 w-12 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+                        onClick={handleSearch}
+                        style={{
+                            boxShadow: `0 0 10px ${moodColor}`
+                        }}
+                    >
+                        <Search className="h-5 w-5 text-white" />
+                    </Button>
+                </div>
             </motion.div>
 
             {/* Neural Status Indicators */}

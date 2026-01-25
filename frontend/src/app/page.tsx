@@ -8,6 +8,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { VibeTuner } from '@/components/features/vibe-tuner';
+import { PersonalizedFeed } from '@/components/features/personalized-feed';
 
 export default function HomePage() {
 
@@ -44,6 +45,11 @@ export default function HomePage() {
           {/* Vibe Tuner (Search Bar) */}
           <VibeTuner />
         </motion.div>
+      </section>
+
+      {/* Personalized Feed (Only visible if logged in, handled by component) */}
+      <section className="container-custom relative z-20 -mt-12 mb-24">
+        <PersonalizedFeed />
       </section>
 
       {/* Features Grid */}

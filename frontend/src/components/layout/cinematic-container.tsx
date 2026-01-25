@@ -1,11 +1,10 @@
 'use client';
 
-import { Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Stars, Sparkles } from '@react-three/drei';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHardwareTier } from '@/hooks/use-hardware-tier';
 import { GlobalEffects } from './global-effects';
+import { CinematicBackground } from '@/components/canvas/cinematic-background';
 
 function MeshGradient() {
     return (
@@ -32,7 +31,7 @@ export function CinematicContainer({ children }: { children: React.ReactNode }) 
     const tier = useHardwareTier();
 
     return (
-        <div className="relative min-h-screen w-full overflow-x-hidden bg-black text-white selection:bg-primary-500/30">
+        <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground">
             {/* 
                 MANDATORY: Global Atmosphere (Grain + Scanlines)
                 Must exist on ALL tiers.
@@ -52,44 +51,7 @@ export function CinematicContainer({ children }: { children: React.ReactNode }) 
             */}
             {tier === 'HIGH' ? (
                 <div className="fixed inset-0 z-0 pointer-events-none opacity-100 mix-blend-screen">
-                    <Canvas
-                        camera={{ position: [0, 0, 1] }}
-                        dpr={[1, 1.5]}
-                        gl={{
-                            antialias: false,
-                            powerPreference: "high-performance",
-                            preserveDrawingBuffer: false,
-                            alpha: true
-                        }}
-                    >
-                        <Suspense fallback={null}>
-                            <Stars
-                                radius={300}
-                                depth={50}
-                                count={1500}
-                                factor={4}
-                                saturation={0}
-                                fade
-                                speed={0.5}
-                            />
-                            <Sparkles
-                                count={50}
-                                scale={10}
-                                size={2}
-                                speed={0.4}
-                                opacity={0.6}
-                                color="#8B5CF6" // Spirit Purple
-                            />
-                            <Sparkles
-                                count={30}
-                                scale={5}
-                                size={1}
-                                speed={0.2}
-                                opacity={0.4}
-                                color="#00F0FF" // Tech Cyan
-                            />
-                        </Suspense>
-                    </Canvas>
+                    <CinematicBackground />
                 </div>
             ) : (
                 <MeshGradient />

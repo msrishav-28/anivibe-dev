@@ -44,3 +44,73 @@ export function useAnimeReviews(animeId: number, page: number = 1) {
         staleTime: 1000 * 60, // Reviews update frequently
     });
 }
+
+export function useExplanation(animeId: number) {
+    return useQuery({
+        queryKey: ['anime', animeId, 'explanation'],
+        queryFn: () => api.explainRecommendation(animeId),
+        staleTime: 1000 * 60 * 60, // Explanations are relatively static
+        retry: false, // Do not retry if 404/500 (just don't show tooltip)
+    });
+}
+
+export function useAnalytics() {
+    return useQuery({
+        queryKey: ['analytics'],
+        queryFn: () => ({ /* mock analytics */ }),
+        enabled: false
+    });
+}
+
+export function usePersonalizedRecommendations(limit: number = 20) {
+    return useQuery({
+        queryKey: ['recommendations', 'personalized'],
+        queryFn: () => api.getPersonalized(limit),
+        staleTime: 1000 * 60 * 15,
+        retry: false
+    });
+}
+
+// Mutations usually don't need a custom hook wrapper if they are simple, 
+// but for consistency and error handling, we can create them or use useMutation directly in components.
+// Here I'll export them to keep api calls centralized.
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+export function useImageSearch() {
+    return useMutation({
+        mutationFn: (file: File) => api.imageSearch(file),
+    });
+}
+
+export function useRateAnime() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, score }: { id: number; score: number }) => api.rateAnime(id, score),
+        onSuccess: (_, { id }) => {
+            queryClient.invalidateQueries({ queryKey: ['anime', id] });
+            queryClient.invalidateQueries({ queryKey: ['user', 'me', 'stats'] });
+        },
+    });
+}
+
+export function useCreateReview() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, content, rating }: { id: number; content: string; rating: number }) =>
+            api.createReview(id, content, rating),
+        onSuccess: (_, { id }) => {
+            queryClient.invalidateQueries({ queryKey: ['anime', id, 'reviews'] });
+        },
+    });
+}
+
+export function useUpdateProfile() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: Parameters<typeof api.updateProfile>[0]) => api.updateProfile(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
+        },
+    });
+}

@@ -1,4 +1,4 @@
-# ⚡ AniVibe: Neo-Tokyo Edition
+# AniVibe: Neo-Tokyo Edition
 
 <div align="center">
 
@@ -20,7 +20,7 @@
 
 ---
 
-## 🧬 Project DNA: "It's Not a Database, It's a World"
+## Project DNA: "It's Not a Database, It's a World"
 
 **AniVibe** is not just another anime tracking list. It is a **$50,000 valued** "Digital Dark Academia" experience designed to immerse users in a **Neo-Tokyo** interface.
 
@@ -30,29 +30,32 @@
 
 ---
 
-## 🧠 Real AI Features (No Mocks)
+## Real AI Features (No Mocks)
 
 > [!IMPORTANT]
-> The AI features in this project rely on **Supabase pgvector** and **Modal** GPU microservices. There are no "fake" responses.
+> The AI features in this project are **LIVE** and rely on **Supabase pgvector** and **Modal** GPU microservices.
+> *   **Visual Search**: Active (Uses CLIP via Modal)
+> *   **Vibe Search**: Active (Uses SBERT via Supabase)
+> *   **Recommendations**: Active (Hybrid Engine)
 
-### 1. 🎨 Semantic Vibe Search
+### 1. Semantic Vibe Search
 Type: *"A cyberpunk city with rain and neon lights"*
 *   **Tech**: **SBERT (Sentence-BERT)** generates a 384-dimensional vector from your query.
 *   **Vector DB**: Queries **Supabase** using Cosine Distance (`<=>`) to find anime mentions or clusters that match that *exact* vibe.
 
-### 2. 👁️ Reverse Image Search
+### 2. Reverse Image Search
 Upload a screenshot.
 *   **Tech**: **OpenAI CLIP (ViT-B-32)** runs on a GPU (via Modal).
 *   **Process**: Converts image pixels -> 512-dim embedding -> Finds nearest anime poster in the vector space.
 
-### 3. 🕸️ Hybrid Recommendations
+### 3. Hybrid Recommendations
 *   **Collaborative Filtering**: "Users who liked X also liked Y."
 *   **Content-Based**: Genre/Tag matching.
 *   **Hidden Gems**: A specialized algorithm that mathematically penalizes "Popularity" to surface high-rated, under-watched masterpieces.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 graph TD
@@ -81,7 +84,7 @@ graph TD
 
 ---
 
-## 🚀 Quick Start (Production Ready)
+## Quick Start (Production Ready)
 
 ### Prerequisites
 *   Docker & Docker Compose
@@ -95,8 +98,15 @@ cp .env.example .env
 Fill in your **Supabase credentials**. The `DATABASE_URL` is optional if you provide `SUPABASE_URL` and `SUPABASE_DB_PASSWORD`.
 
 ### 2. Run with Docker
+**Standard Mode (With Local ML):**
 ```bash
 docker-compose up -d --build
+```
+**Lightweight Mode (Cloud-Only):**
+If you want to run like the free-tier production setup:
+```bash
+pip install -r requirements-lite.txt
+uvicorn app.main:app
 ```
 *   **Frontend**: `http://localhost:3000`
 *   **Backend**: `http://localhost:8000`
@@ -111,7 +121,7 @@ docker-compose exec backend alembic upgrade head
 
 ---
 
-## 🧪 Testing
+## Testing
 We maintain a strict testing culture for reliability.
 
 ```bash
@@ -121,7 +131,7 @@ docker-compose exec backend pytest
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 AniVibe/
@@ -140,5 +150,5 @@ AniVibe/
 
 ---
 
-## 📜 License
+## License
 **MIT License**. Built for the "Ethereal Archive" initiative.
