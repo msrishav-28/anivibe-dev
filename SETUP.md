@@ -1,461 +1,353 @@
-# AniVibe Setup Guide
+# 🚀 AniVibe Setup Guide
 
-Complete guide to set up AniVibe backend from scratch.
+## Architecture Overview
+
+**Pure Supabase Stack** - Single database, minimal infrastructure
+
+```
+┌─────────────────┐      ┌──────────────┐      ┌─────────────┐
+│   Next.js       │─────▶│   FastAPI    │─────▶│  Supabase   │
+│   Frontend      │      │   Backend    │      │  PostgreSQL │
+│  (localhost:3000)│      │(localhost:8000)│      │   (Cloud)   │
+└─────────────────┘      └──────────────┘      └─────────────┘
+                              │
+                              ▼
+                         ┌──────────┐
+                         │  Redis   │
+                         │ (Cache)  │
+                         └──────────┘
+```
+
+---
 
 ## Prerequisites
 
-### Required Software
-- Python 3.11+
-- Docker Desktop (for containerized setup)
-- PostgreSQL 15+ (if running locally)
-- MongoDB 7+ (if running locally)
-- Redis 7+ (if running locally)
-- Git
-
-### Optional
-- NVIDIA GPU with CUDA (for faster ML inference)
-- Make (for using Makefile commands)
-
-## Installation Methods
-
-### Method 1: Docker (Recommended for Quick Start)
-
-**Step 1: Clone the repository**
-```bash
-git clone https://github.com/yourusername/AniVibe.git
-cd AniVibe
-```
-
-**Step 2: Configure environment**
-```bash
-# Copy example environment file
-cp .env.example .env
-
-# Edit .env with your settings
-# Required: SECRET_KEY, database passwords
-# Optional: GEMINI_API_KEY, MAL_CLIENT_ID, ANILIST_CLIENT_ID
-```
-
-**Step 3: Start services**
-```bash
-# Build and start all services
-docker-compose up -d
-
-# Check status
-docker-compose ps
-
-# View logs
-docker-compose logs -f backend
-```
-
-**Step 4: Access the application**
-- API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
-- MLflow: http://localhost:5000
-
-**Step 5: Create initial data**
-```bash
-# Run database setup (creates admin user and genres)
-docker-compose exec backend python scripts/setup_database.py
-```
-
-**Default Admin Credentials:**
-- Username: `admin`
-- Password: `admin123`
-- Email: `admin@anivibe.com`
-
-⚠️ **Important**: Change the admin password after first login!
+- **Node.js** 18.17.0+
+- **Python** 3.10+
+- **Docker** (for Redis)
+- **Supabase Account** (free tier works)
+- **Gemini API Key** (for LLM features)
 
 ---
 
-### Method 2: Local Development Setup
+## 1. Clone & Navigate
 
-**Step 1: Clone and setup Python environment**
 ```bash
-git clone https://github.com/yourusername/AniVibe.git
-cd AniVibe
-
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
+git clone https://github.com/msrishav-28/anivibe-dev.git
+cd anivibe-dev
 ```
 
-**Step 2: Setup databases**
+---
 
-Install and start PostgreSQL, MongoDB, and Redis locally or use Docker:
+## 2. Supabase Setup
 
-```bash
-# Using Docker for databases only
-docker run -d --name anivibe_postgres \
-  -e POSTGRES_USER=anivibe \
-  -e POSTGRES_PASSWORD=anivibe_password \
-  -e POSTGRES_DB=anivibe_db \
-  -p 5432:5432 \
-  postgres:15-alpine
+### Create Project
+1. Go to [supabase.com](https://supabase.com)
+2. Create new project (choose Mumbai/ap-south-1 region)
+3. Wait 2 minutes for provisioning
 
-docker run -d --name anivibe_mongodb \
-  -e MONGO_INITDB_ROOT_USERNAME=anivibe \
-  -e MONGO_INITDB_ROOT_PASSWORD=anivibe_password \
-  -p 27017:27017 \
-  mongo:7
-
-docker run -d --name anivibe_redis \
-  -p 6379:6379 \
-  redis:7-alpine
+### Get Credentials
+```
+Project Settings → API → Copy:
+- Project URL (SUPABASE_URL)
+- anon/public key (SUPABASE_ANON_KEY)  
+- service_role key (SUPABASE_SERVICE_KEY)
 ```
 
-**Step 3: Configure environment**
-```bash
-cp .env.example .env
-# Edit .env with your local database configurations
-```
+### Run Database Migrations
 
-**Step 4: Initialize database**
-```bash
-# Create tables and initial data
-python scripts/setup_database.py
+**Option A: Using Supabase SQL Editor (Recommended)**
+1. Go to SQL Editor in Supabase Dashboard
+2. Copy SQL from `alembic/versions/*.py` files
+3. Execute in order
 
-# Or use Alembic migrations
+**Option B: Using Alembic**
+```bash
+# After backend setup
 alembic upgrade head
 ```
 
-**Step 5: Run the application**
-```bash
-# Development server with auto-reload
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# Or using Make
-make dev
-```
-
 ---
 
-## Configuration
+## 3. Backend Setup
 
-### Environment Variables
-
-#### Application Settings
+### Install Dependencies
 ```bash
-APP_NAME=AniVibe
-ENVIRONMENT=development  # or production
-DEBUG=True
-SECRET_KEY=your-super-secret-key-min-32-chars  # REQUIRED
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-#### Database Configuration
+### Configure Environment
 ```bash
-# PostgreSQL
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_USER=anivibe
-POSTGRES_PASSWORD=your_secure_password  # REQUIRED
-POSTGRES_DB=anivibe_db
+cp .env.example .env
+```
 
-# MongoDB
-MONGODB_HOST=localhost
-MONGODB_PORT=27017
-MONGODB_USER=anivibe
-MONGODB_PASSWORD=your_secure_password  # REQUIRED
-MONGODB_DB=anivibe_embeddings
+**Edit `.env` with your values:**
+```bash
+# Required
+SECRET_KEY=generate-random-32-char-string-here
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_KEY=your-service-key
+GEMINI_API_KEY=your-gemini-api-key
 
-# Redis
+# Optional (defaults work)
 REDIS_HOST=localhost
 REDIS_PORT=6379
-REDIS_PASSWORD=  # Optional
+USE_GPU=false
 ```
 
-#### ML Model Configuration
-```bash
-MODEL_CACHE_DIR=./models/cache
-EMBEDDINGS_DIR=./data/embeddings
-FAISS_INDEX_PATH=./data/faiss_indexes
-
-# CLIP
-CLIP_MODEL_NAME=ViT-B-32
-CLIP_PRETRAINED=openai
-
-# BERT
-SBERT_MODEL_NAME=all-mpnet-base-v2  # or all-MiniLM-L6-v2 for lighter
-
-# GPU
-USE_GPU=True  # Set to False if no GPU available
-GPU_DEVICE=cuda:0
+### Generate Secret Key
+```python
+import secrets
+print(secrets.token_urlsafe(32))
 ```
 
-#### External API Keys (Optional but Recommended)
+### Start Redis (Docker)
 ```bash
-# Gemini AI for LLM query parsing
-GEMINI_API_KEY=your_gemini_api_key
+docker-compose up -d
+```
 
-# MyAnimeList OAuth
-MAL_CLIENT_ID=your_mal_client_id
-MAL_CLIENT_SECRET=your_mal_client_secret
+### Start Backend
+```bash
+uvicorn app.main:app --reload
+```
 
-# AniList OAuth
-ANILIST_CLIENT_ID=your_anilist_client_id
-ANILIST_CLIENT_SECRET=your_anilist_client_secret
+**Verify:** http://localhost:8000/docs (Swagger UI)
+
+---
+
+## 4. Frontend Setup
+
+### Install Dependencies
+```bash
+cd frontend
+npm install
+```
+
+### Configure Environment
+```bash
+cp .env.local.example .env.local
+```
+
+**Edit `.env.local`:**
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+### Start Frontend
+```bash
+npm run dev
+```
+
+**Verify:** http://localhost:3000
+
+---
+
+## 5. Verify Integration
+
+### Test Checklist
+- [ ] Backend Swagger docs load (http://localhost:8000/docs)
+- [ ] Frontend loads without console errors
+- [ ] Can create account (signup flow)
+- [ ] Can login
+- [ ] Search works (calls `/search/semantic`)
+- [ ] Recommendations load on homepage
+- [ ] Profile page shows stats
+
+### Debug API Calls
+Open browser console → Network tab → Look for XHR requests to `/api/v1/*`
+
+---
+
+## 6. Load Initial Data
+
+### Option A: Use Jikan API (Live Data)
+The app will fetch anime data on-demand from MyAnimeList via Jikan API.
+
+### Option B: Seed Database (Recommended for Development)
+```bash
+# From backend directory
+python scripts/seed_database.py
+```
+
+This will:
+- Fetch top 100 anime from MAL
+- Generate embeddings
+- Populate Supabase
+
+---
+
+## Common Issues
+
+### 1. "Connection to Supabase failed"
+- ✅ Check SUPABASE_SERVICE_KEY is correct (not anon key)
+- ✅ Verify project URL has `https://`
+- ✅ Check Supabase project is not paused (free tier auto-pauses after 1 week inactivity)
+
+### 2. "Module not found: @/lib/api-client"
+- ✅ Run `npm install` in frontend folder
+- ✅ Restart Next.js dev server
+
+### 3. "Redis connection refused"
+- ✅ Start Redis: `docker-compose up redis -d`
+- ✅ Check port 6379 is not in use
+
+### 4. Frontend shows CORS errors
+- ✅ Check `CORS_ORIGINS` in backend `.env` includes `http://localhost:3000`
+- ✅ Restart backend server
+
+### 5. "Alembic can't connect to database"
+- ✅ You're using the sync pooler (port 6543) - check config.py `database_url_sync`
+- ✅ Service key has correct permissions
+
+---
+
+## Feature Flags
+
+Control which ML features are enabled in `.env`:
+
+```bash
+# Heavy features (offload to Modal later)
+ENABLE_IMAGE_SEARCH=false  # Requires CLIP model
+ENABLE_GNN=false           # Requires trained GNN
+ENABLE_BERT4REC=false      # Requires trained BERT4Rec
+
+# Always enabled
+ENABLE_RECOMMENDATIONS=true  # Content-based filtering
 ```
 
 ---
 
-## Data Setup
+## Project Structure
 
-### Option 1: Using Sample Data (Quick Test)
-
-```bash
-# Download sample dataset
-python scripts/download_sample_data.py
-
-# This will create:
-# - data/raw/anime_sample.csv (100 anime)
-# - data/raw/ratings_sample.csv (1000 ratings)
 ```
-
-### Option 2: Full Dataset from MAL/AniList
-
-```bash
-# Fetch full dataset (takes ~30 minutes)
-python scripts/fetch_mal_data.py --limit 10000
-
-# Fetch anime posters
-python scripts/download_anime_posters.py
-
-# Generate embeddings (requires ~8GB RAM)
-python scripts/generate_embeddings.py
-
-# Create FAISS indexes
-python scripts/create_faiss_indexes.py
-```
-
----
-
-## Verification
-
-### 1. Check Services
-```bash
-# Using Docker
-docker-compose ps
-
-# All services should be "Up" and "healthy"
-```
-
-### 2. Test API
-```bash
-# Health check
-curl http://localhost:8000/health
-
-# Should return: {"status":"healthy"}
-```
-
-### 3. Test Authentication
-```bash
-# Register new user
-curl -X POST http://localhost:8000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "testuser",
-    "email": "test@example.com",
-    "password": "TestPass123"
-  }'
-
-# Login
-curl -X POST http://localhost:8000/api/v1/auth/login \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=testuser&password=TestPass123"
-```
-
-### 4. Test ML Models
-```bash
-# This will download models on first run (may take a few minutes)
-python -c "
-from app.core.ml_models import init_ml_models
-import asyncio
-asyncio.run(init_ml_models())
-print('✅ ML models loaded successfully')
-"
+anivibe-dev/
+├── app/                    # FastAPI backend
+│   ├── api/v1/            # API routes
+│   ├── core/              # Database, auth, config
+│   ├── models/            # SQLAlchemy models
+│   ├── schemas/           # Pydantic schemas
+│   └── services/          # ML services
+│       ├── bert4rec_service.py
+│       ├── collaborative_filtering.py
+│       ├── content_based.py
+│       ├── explainability.py
+│       ├── gnn_recommender.py
+│       ├── semantic_search.py
+│       └── vector_search.py
+├── frontend/              # Next.js frontend
+│   ├── src/
+│   │   ├── app/          # Pages (Next.js 14 app router)
+│   │   ├── components/   # React components
+│   │   ├── hooks/        # React Query hooks
+│   │   ├── lib/          # API client, utils
+│   │   └── types/        # TypeScript types
+│   └── public/
+├── alembic/              # Database migrations
+├── models/               # Trained ML models
+├── logs/                 # Application logs
+├── docker-compose.yml    # Redis only
+├── requirements.txt      # Python dependencies
+└── config.py            # Backend configuration
 ```
 
 ---
 
-## Troubleshooting
+## Future Features (Documented, Not Implemented)
 
-### Issue: Database connection failed
+### Atlas (3D Anime Network)
+- **Route:** `/api/v1/atlas`
+- **Status:** Placeholder with mock data
+- **Frontend:** Page exists but not functional
+- **Todo:** Implement GNN clustering → UMAP projection → Three.js rendering
 
-**Solution:**
+### Analytics Dashboard
+- **Route:** `/api/v1/analytics`  
+- **Status:** Backend implemented ✅
+- **Frontend:** Integrated in profile page ✅
+- **Shows:** Genre distribution, watch time heatmap, user stats
+
+---
+
+## Deployment
+
+### Backend (Railway/Render)
 ```bash
-# Check if PostgreSQL is running
-docker-compose ps postgres
-
-# View logs
-docker-compose logs postgres
-
-# Recreate database
-docker-compose down -v
-docker-compose up -d postgres
+# Set environment variables in Railway dashboard
+# Deploy from main branch
 ```
 
-### Issue: ML models not loading
-
-**Solution:**
+### Frontend (Vercel)
 ```bash
-# Check if models directory exists
-mkdir -p models/cache
-
-# Clear cache and re-download
-rm -rf models/cache/*
-python -c "from app.core.ml_models import init_ml_models; import asyncio; asyncio.run(init_ml_models())"
+vercel deploy
+# Add environment variables in Vercel dashboard
 ```
 
-### Issue: Out of memory
-
-**Solution:**
-```bash
-# Use lighter models in .env
-SBERT_MODEL_NAME=all-MiniLM-L6-v2  # 384-dim instead of 768-dim
-CLIP_MODEL_NAME=ViT-B-32  # Instead of ViT-L-14
-
-# Reduce batch size
-BATCH_SIZE=8  # Instead of 32
-```
-
-### Issue: Port already in use
-
-**Solution:**
-```bash
-# Change ports in docker-compose.yml
-# Or stop conflicting services
-docker stop $(docker ps -q)  # Stop all Docker containers
-```
+### Redis (Upstash)
+Use Upstash Redis for production (free tier available)
 
 ---
 
 ## Development Workflow
 
-### Running Tests
-```bash
-# All tests
-pytest
+1. **Make Changes**
+   - Backend: Code auto-reloads with `--reload`
+   - Frontend: Hot Module Replacement (HMR)
 
-# With coverage
-pytest --cov=app --cov-report=html
+2. **Database Changes**
+   ```bash
+   # Generate migration
+   alembic revision --autogenerate -m "description"
+   
+   # Apply migration
+   alembic upgrade head
+   ```
 
-# Specific test file
-pytest tests/test_recommendations.py -v
-```
+3. **Test API Changes**
+   - Use Swagger UI: http://localhost:8000/docs
+   - Or use frontend to test integration
 
-### Code Quality
-```bash
-# Format code
-black app/ tests/
-isort app/ tests/
-
-# Lint
-flake8 app/ --max-line-length=120
-
-# Type checking
-mypy app/
-```
-
-### Database Migrations
-```bash
-# Create new migration
-alembic revision --autogenerate -m "Add new field"
-
-# Apply migrations
-alembic upgrade head
-
-# Rollback
-alembic downgrade -1
-```
-
----
-
-## Production Deployment
-
-### Security Checklist
-- [ ] Change `SECRET_KEY` to a strong random value
-- [ ] Set `DEBUG=False`
-- [ ] Change all database passwords
-- [ ] Enable HTTPS/TLS
-- [ ] Configure firewall rules
-- [ ] Set up backup strategy
-- [ ] Enable rate limiting
-- [ ] Review CORS settings
-
-### Environment Variables for Production
-```bash
-ENVIRONMENT=production
-DEBUG=False
-SECRET_KEY=$(openssl rand -hex 32)
-# Use strong passwords for all databases
-```
-
-### Docker Production Build
-```bash
-# Build for production
-docker-compose -f docker-compose.prod.yml build
-
-# Deploy
-docker-compose -f docker-compose.prod.yml up -d
-```
-
----
-
-## Next Steps
-
-1. **Populate Database**: Run data fetching scripts to get anime data
-2. **Generate Embeddings**: Create CLIP and BERT embeddings for all anime
-3. **Build FAISS Indexes**: Enable fast similarity search
-4. **Setup Frontend**: Deploy React frontend (see frontend/README.md)
-5. **Configure OAuth**: Setup MAL and AniList authentication
-6. **Monitor**: Setup Prometheus and Grafana for monitoring
+4. **Commit & Push**
+   ```bash
+   git add .
+   git commit -m "feat: description"
+   git push origin main
+   ```
 
 ---
 
 ## Support
 
-- **Documentation**: See [docs/](docs/) folder
-- **Issues**: Open an issue on GitHub
-- **Discussions**: Use GitHub Discussions
-- **Email**: support@anivibe.com
+- **Issues:** [GitHub Issues](https://github.com/msrishav-28/anivibe-dev/issues)
+- **Docs:** This file + inline code comments
+- **API Docs:** http://localhost:8000/docs (when running)
 
 ---
 
-## Quick Commands Reference
+## What Changed (Jan 2026 Refactoring)
 
-```bash
-# Start everything
-make start
+✅ **Removed:**
+- Local PostgreSQL (now Supabase only)
+- MongoDB (embeddings in pgvector)
+- Celery task queue (APScheduler for background jobs)
+- MLflow (model tracking deferred)
+- Docker containers for databases
 
-# Stop everything
-make stop
+✅ **Added:**
+- Complete API client (`frontend/src/lib/api-client.ts`)
+- TypeScript types for all API responses
+- Pure Supabase configuration
+- Environment file templates
 
-# View logs
-docker-compose logs -f
+✅ **Cleaned:**
+- 4MB of unused frontend dependencies (D3, Plotly, AnimeJS)
+- Orphaned backend packages (Celery, MLflow)
+- Kept Three.js (your brand identity!)
 
-# Database setup
-make db-setup
+---
 
-# Run migrations
-make migrate
-
-# Development server
-make dev
-
-# Run tests
-make test
-
-# Format code
-make format
-
-# Clean cache
-make clean
-```
+**Ready to build?** Start with Step 2 (Supabase setup) 🚀
