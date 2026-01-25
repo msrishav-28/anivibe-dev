@@ -1,5 +1,5 @@
 """
-Database connection management for Supabase
+Pure Supabase database connection
 """
 from typing import AsyncGenerator, Optional
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
@@ -11,47 +11,47 @@ from config import settings
 
 logger = logging.getLogger(__name__)
 
-# SQLAlchemy Base for ORM models
+# SQLAlchemy Base
 Base = declarative_base()
 
 # Supabase clients
 supabase: Optional[Client] = None
 supabase_admin: Optional[Client] = None
 
-# SQLAlchemy async engine and session factory
+# SQLAlchemy engine
 engine = None
 AsyncSessionLocal = None
 
 
 async def init_db():
-    """
-    Initialize database connections:
-    - Supabase client for auth and real-time features
-    - SQLAlchemy engine for complex queries
-    """
+    """Initialize Supabase connections"""
     global supabase, supabase_admin, engine, AsyncSessionLocal
     
     try:
-        # Initialize Supabase client (uses anon key, respects RLS)
-        supabase = create_client(settings.supabase_url, settings.supabase_anon_key)
-        logger.info("Supabase client initialized (anon key)")
+        # Supabase client (respects RLS)
+        supabase = create_client(
+            settings.supabase_url,
+            settings.supabase_anon_key
+        )
+        logger.info("✓ Supabase client initialized")
         
-        # Initialize Supabase admin client (bypasses RLS for server operations)
-        supabase_admin = create_client(settings.supabase_url, settings.supabase_service_key)
-        logger.info("Supabase admin client initialized (service key)")
+        # Supabase admin (bypasses RLS for server operations)
+        supabase_admin = create_client(
+            settings.supabase_url,
+            settings.supabase_service_key
+        )
+        logger.info("✓ Supabase admin client initialized")
         
-        # Initialize SQLAlchemy engine for complex queries
+        # SQLAlchemy async engine for complex queries
         engine = create_async_engine(
             settings.database_url,
             echo=settings.debug,
-            future=True,
-            pool_size=10,
-            max_overflow=20,
+            pool_size=5,
+            max_overflow=10,
             pool_pre_ping=True,
             pool_recycle=3600,
         )
         
-        # Create async session factory
         AsyncSessionLocal = async_sessionmaker(
             engine,
             class_=AsyncSession,
@@ -60,32 +60,39 @@ async def init_db():
             autoflush=False,
         )
         
-        logger.info("SQLAlchemy async engine initialized for Supabase PostgreSQL")
+        logger.info("✓ SQLAlchemy engine connected to Supabase")
+        
+        # Test connection
+        async with engine.begin() as conn:
+            await conn.execute("SELECT 1")
+        
+        logger.info("✓ Database connection verified")
         
     except Exception as e:
-        logger.error(f"Database initialization failed: {e}")
+        logger.error(f"❌ Database initialization failed: {e}")
         raise
 
 
 async def close_db():
-    """Close database connections"""
+    """Close connections"""
     global engine
     
-    try:
-        if engine:
-            await engine.dispose()
-            logger.info("Database connections closed")
-    except Exception as e:
-        logger.error(f"Error closing database connections: {e}")
+    if engine:
+        await engine.dispose()
+        logger.info("Database connections closed")
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
-    Dependency for getting async database session.
-    Usage: db: AsyncSession = Depends(get_db)
+    Dependency for async database sessions.
+    
+    Usage:
+        @router.get("/users")
+        async def get_users(db: AsyncSession = Depends(get_db)):
+            ...
     """
     if AsyncSessionLocal is None:
-        raise RuntimeError("Database not initialized. Call init_db() first.")
+        raise RuntimeError("Database not initialized")
     
     async with AsyncSessionLocal() as session:
         try:
@@ -95,21 +102,14 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 def get_supabase() -> Client:
-    """
-    Dependency for getting Supabase client (uses anon key, respects RLS).
-    Usage: supabase: Client = Depends(get_supabase)
-    """
+    """Get Supabase client (respects RLS)"""
     if supabase is None:
-        raise RuntimeError("Supabase not initialized. Call init_db() first.")
+        raise RuntimeError("Supabase not initialized")
     return supabase
 
 
 def get_supabase_admin() -> Client:
-    """
-    Dependency for getting Supabase admin client (bypasses RLS).
-    Use only for server-side admin operations.
-    Usage: supabase: Client = Depends(get_supabase_admin)
-    """
+    """Get Supabase admin client (bypasses RLS)"""
     if supabase_admin is None:
-        raise RuntimeError("Supabase admin not initialized. Call init_db() first.")
+        raise RuntimeError("Supabase admin not initialized")
     return supabase_admin
