@@ -29,14 +29,21 @@ async def lifespan(app: FastAPI):
     try:
         await init_db()
         logger.info("✅ Database initialized")
+        
+        # Initialize Redis
+        from app.core.cache import init_redis, close_redis
+        await init_redis()
+        logger.info("✅ Redis initialized")
+        
     except Exception as e:
-        logger.error(f"❌ Database initialization failed: {e}")
+        logger.error(f"❌ Initialization failed: {e}")
         raise
     
     yield
     
     # Shutdown
     logger.info("Shutting down...")
+    await close_redis()
     await close_db()
 
 

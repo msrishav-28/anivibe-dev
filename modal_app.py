@@ -56,33 +56,56 @@ def clip_image_search(request: dict):
         }
     """
     import torch
-    import open_clip
     from PIL import Image
     import base64
     from io import BytesIO
+    from supabase import create_client, Client
+    import os
     
     # Load model (cached after first run)
+    import open_clip
     model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='openai')
     model.eval()
     
     # Decode image
-    image_data = base64.b64decode(request["image_base64"])
-    image = Image.open(BytesIO(image_data))
+    try:
+        if "base64," in request["image_base64"]:
+             request["image_base64"] = request["image_base64"].split("base64,")[1]
+             
+        image_data = base64.b64decode(request["image_base64"])
+        image = Image.open(BytesIO(image_data))
+    except Exception as e:
+        return {"error": f"Invalid image data: {str(e)}"}
     
     # Get image embedding
     with torch.no_grad():
         image_tensor = preprocess(image).unsqueeze(0)
         image_embedding = model.encode_image(image_tensor)
         image_embedding = image_embedding / image_embedding.norm(dim=-1, keepdim=True)
+        embedding_list = image_embedding.cpu().numpy()[0].tolist()
     
-    # TODO: Query Supabase for similar anime using pgvector
-    # For now, return mock results
-    return {
-        "results": [
-            {"anime_id": 1, "title": "Attack on Titan", "similarity": 0.95},
-            {"anime_id": 2, "title": "Death Note", "similarity": 0.87},
-        ]
-    }
+    # Connect to Supabase
+    url: str = os.environ.get("SUPABASE_URL")
+    key: str = os.environ.get("SUPABASE_SERVICE_KEY")
+    supabase: Client = create_client(url, key)
+    
+    # Query via RPC
+    try:
+        response = supabase.rpc(
+            "match_anime_embeddings", 
+            {
+                "query_embedding": embedding_list,
+                "match_threshold": 0.5,
+                "match_count": request.get("limit", 20)
+            }
+        ).execute()
+        
+        return {"results": response.data}
+        
+    except Exception as e:
+        print(f"Supabase RPC failed: {e}")
+        # Fallback empty
+        return {"results": []}
 
 
 @app.function(

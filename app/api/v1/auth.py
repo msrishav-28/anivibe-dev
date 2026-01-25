@@ -1,7 +1,7 @@
 """
 Authentication endpoints using Supabase Auth
 """
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Response, Request
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from supabase import Client
@@ -115,36 +115,55 @@ async def register(
 @router.post("/login", response_model=TokenResponse)
 async def login(
     data: LoginRequest,
+    response: Response,  # Inject Response object
     supabase: Client = Depends(get_supabase)
 ):
     """
     Login with email and password using Supabase Auth.
     
-    Returns access token, refresh token, and user data.
+    Sets HttpOnly cookies for access and refresh tokens.
     """
     try:
         # Sign in with Supabase Auth
-        response = supabase.auth.sign_in_with_password({
+        sb_response = supabase.auth.sign_in_with_password({
             "email": data.email,
             "password": data.password
         })
         
-        if response.user and response.session:
-            user_metadata = response.user.user_metadata or {}
+        if sb_response.user and sb_response.session:
+            user_metadata = sb_response.user.user_metadata or {}
+            
+            # Set cookies
+            response.set_cookie(
+                key="access_token",
+                value=sb_response.session.access_token,
+                httponly=True,
+                secure=True,  # Requires HTTPS
+                samesite="lax",
+                max_age=3600  # 1 hour
+            )
+            response.set_cookie(
+                key="refresh_token",
+                value=sb_response.session.refresh_token,
+                httponly=True,
+                secure=True,
+                samesite="lax",
+                max_age=30 * 24 * 3600  # 30 days
+            )
             
             logger.info(f"User logged in: {data.email}")
             return {
-                "access_token": response.session.access_token,
-                "refresh_token": response.session.refresh_token,
+                "access_token": sb_response.session.access_token, # Sent for client store if needed (deprecated)
+                "refresh_token": sb_response.session.refresh_token,
                 "token_type": "bearer",
                 "user": {
-                    "id": str(response.user.id),
-                    "user_id": str(response.user.id),
-                    "email": response.user.email,
+                    "id": str(sb_response.user.id),
+                    "user_id": str(sb_response.user.id),
+                    "email": sb_response.user.email,
                     "username": user_metadata.get("username", data.email.split("@")[0]),
                     "full_name": user_metadata.get("full_name"),
                     "avatar_url": user_metadata.get("avatar_url"),
-                    "created_at": response.user.created_at
+                    "created_at": sb_response.user.created_at
                 }
             }
         
@@ -166,18 +185,38 @@ async def login(
 @router.post("/refresh")
 async def refresh_token(
     data: RefreshTokenRequest,
+    response: Response,
     supabase: Client = Depends(get_supabase)
 ):
     """
     Refresh access token using refresh token.
+    Rotates cookies.
     """
     try:
-        response = supabase.auth.refresh_session(data.refresh_token)
+        sb_response = supabase.auth.refresh_session(data.refresh_token)
         
-        if response.session:
+        if sb_response.session:
+            # Set cookies
+            response.set_cookie(
+                key="access_token",
+                value=sb_response.session.access_token,
+                httponly=True,
+                secure=True,
+                samesite="lax",
+                max_age=3600
+            )
+            response.set_cookie(
+                key="refresh_token",
+                value=sb_response.session.refresh_token,
+                httponly=True,
+                secure=True,
+                samesite="lax",
+                max_age=30 * 24 * 3600
+            )
+            
             return {
-                "access_token": response.session.access_token,
-                "refresh_token": response.session.refresh_token,
+                "access_token": sb_response.session.access_token,
+                "refresh_token": sb_response.session.refresh_token,
                 "token_type": "bearer"
             }
         
@@ -197,16 +236,22 @@ async def refresh_token(
 
 
 @router.post("/logout")
-async def logout(supabase: Client = Depends(get_supabase)):
+async def logout(
+    response: Response,
+    supabase: Client = Depends(get_supabase)
+):
     """
-    Logout user and invalidate session.
+    Logout user, invalidate session, and clear cookies.
     """
     try:
         supabase.auth.sign_out()
+        response.delete_cookie(key="access_token")
+        response.delete_cookie(key="refresh_token")
         return {"message": "Successfully logged out"}
     except Exception as e:
         logger.error(f"Logout error: {e}")
-        # Always return success for logout
+        response.delete_cookie(key="access_token")
+        response.delete_cookie(key="refresh_token")
         return {"message": "Successfully logged out"}
 
 

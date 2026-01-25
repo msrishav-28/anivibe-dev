@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from supabase import Client
-from passlib.context import CryptContext
+# from passlib.context import CryptContext (Removed)
 import logging
 
 from app.core.database import get_supabase, get_supabase_admin
@@ -15,18 +15,17 @@ logger = logging.getLogger(__name__)
 # HTTP Bearer security scheme
 security = HTTPBearer(auto_error=False)
 
-# Password hashing context (for backwards compatibility, Supabase handles this)
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+# Password hashing context removed - Supabase handles all authentication
+# verify_password and get_password_hash are deprecated/removed
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against a hash (backwards compatibility)"""
-    return pwd_context.verify(plain_password, hashed_password)
+    """DEPRECATED: Verify a password against a hash (backwards compatibility)"""
+    raise NotImplementedError("Use Supabase Auth")
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password (backwards compatibility)"""
-    return pwd_context.hash(password)
+    """DEPRECATED: Hash a password (backwards compatibility)"""
+    raise NotImplementedError("Use Supabase Auth")
 
 
 async def get_current_user(

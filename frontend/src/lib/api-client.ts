@@ -14,10 +14,7 @@ const client = axios.create({
 // Request interceptor - Add auth token
 client.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // No explicit token header needed - cookies are sent automatically
     return config;
   },
   (error) => Promise.reject(error)
@@ -29,7 +26,7 @@ client.interceptors.response.use(
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       // Token expired, redirect to login
-      localStorage.removeItem('auth_token');
+      // localStorage.removeItem('auth_token'); // Removed
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -41,9 +38,7 @@ export const api = {
   // ==================== AUTH ====================
   login: async (email: string, password: string) => {
     const response = await client.post('/auth/login', { email, password });
-    if (response.data.access_token) {
-      localStorage.setItem('auth_token', response.data.access_token);
-    }
+    // Token is now in HttpOnly cookie
     return response.data;
   },
 
@@ -57,8 +52,9 @@ export const api = {
     return response.data;
   },
 
-  logout: () => {
-    localStorage.removeItem('auth_token');
+  logout: async () => {
+    // localStorage.removeItem('auth_token'); // Removed
+    await client.post('/auth/logout');
   },
 
   getCurrentUser: async () => {
@@ -133,15 +129,18 @@ export const api = {
   },
 
   getPersonalized: async (limit = 20) => {
-    const response = await client.get('/recommendations/personalized', {
-      params: { limit },
+    // Backend expects POST with top_k
+    const response = await client.post('/recommendations/personalized', {
+      top_k: limit,
+      method: 'hybrid'
     });
     return response.data;
   },
 
   getHiddenGems: async (limit = 20) => {
-    const response = await client.get('/recommendations/hidden-gems', {
-      params: { limit },
+    // Backend expects POST with top_k
+    const response = await client.post('/recommendations/hidden-gems', {
+      top_k: limit
     });
     return response.data;
   },
