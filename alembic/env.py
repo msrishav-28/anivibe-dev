@@ -1,6 +1,5 @@
 """
-Alembic environment configuration for database migrations
-Supports asyncpg driver
+Alembic environment configuration for Supabase migrations
 """
 import asyncio
 from logging.config import fileConfig
@@ -16,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parents[1]))
 
 from config import settings
 from app.core.database import Base
-from app.models import *  # Import all models to ensure they registered
+from app.models import *  # Import all models
 
 # Alembic Config object
 config = context.config
@@ -25,8 +24,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Set database URL from settings
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Use sync database URL for migrations (transaction pooler)
+config.set_main_option("sqlalchemy.url", settings.database_url_sync)
 
 # Model metadata for autogenerate
 target_metadata = Base.metadata
@@ -54,7 +53,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    """In this scenario we need to create an Engine and associate a connection with the context."""
+    """Run migrations via async engine."""
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
