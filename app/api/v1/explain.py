@@ -2,7 +2,7 @@
 Explainability API endpoints
 Provide explanations for recommendations
 """
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select

@@ -1,11 +1,11 @@
 # AniVibe Makefile
 
-.PHONY: help install dev test lint format clean docker-build docker-up docker-down migrate db-setup
+.PHONY: help install dev test lint format clean docker-build docker-up docker-down docker-logs migrate db-setup embeddings-smoke local-smoke visual-eval start stop restart dev-setup deploy
 
 help:
 	@echo "AniVibe - Makefile Commands"
 	@echo "======================================"
-	@echo "install        - Install dependencies"
+	@echo "install        - Install development dependencies"
 	@echo "dev            - Run development server"
 	@echo "test           - Run tests"
 	@echo "lint           - Run linting"
@@ -15,24 +15,26 @@ help:
 	@echo "docker-up      - Start Docker services"
 	@echo "docker-down    - Stop Docker services"
 	@echo "migrate        - Run database migrations"
-	@echo "db-setup       - Setup database with initial data"
+	@echo "db-setup       - Import the 250-anime MAL/Jikan smoke dataset"
+	@echo "embeddings-smoke - Generate local SBERT embeddings for the smoke dataset"
+	@echo "local-smoke    - Run API smoke checks against a running local backend"
+	@echo "visual-eval    - Run local poster visual-search evaluation"
 
 install:
-	pip install -r requirements.txt
+	pip install -r requirements-dev.txt
 
 dev:
 	uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 test:
-	pytest tests/ -v --cov=app --cov-report=html
+	pytest tests/ -v --cov=app --cov-report=term-missing
 
 lint:
-	flake8 app/ --max-line-length=120
+	ruff check app tests
 	mypy app/
 
 format:
-	black app/ tests/ --line-length=100
-	isort app/ tests/
+	ruff format app tests
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
@@ -50,10 +52,9 @@ docker-build:
 
 docker-up:
 	docker-compose up -d
-	@echo "✅ Services started!"
+	@echo "Services started."
 	@echo "Backend: http://localhost:8000"
 	@echo "API Docs: http://localhost:8000/docs"
-	@echo "MLflow: http://localhost:5000"
 
 docker-down:
 	docker-compose down
@@ -65,23 +66,29 @@ migrate:
 	alembic upgrade head
 
 db-setup:
-	python scripts/setup_database.py
+	python scripts/fetch_mal_data.py --limit 250 --import-db
 
-# Quick start
+embeddings-smoke:
+	python scripts/generate_embeddings.py --batch-size 16
+
+local-smoke:
+	python scripts/local_product_smoke.py
+
+visual-eval:
+	python scripts/evaluate_visual_search.py --limit 250 --generate --evaluate
+
 start: docker-up
-	@echo "🚀 AniVibe is running!"
+	@echo "AniVibe is running."
 
 stop: docker-down
-	@echo "⏹️  AniVibe stopped"
+	@echo "AniVibe stopped."
 
 restart: stop start
-	@echo "🔄 AniVibe restarted"
+	@echo "AniVibe restarted."
 
-# Development workflow
 dev-setup: install db-setup
-	@echo "✅ Development environment ready!"
+	@echo "Development environment ready."
 
-# Production deployment
 deploy:
-	@echo "🚀 Deploying to production..."
+	@echo "Deploying to production..."
 	docker-compose -f docker-compose.prod.yml up -d --build

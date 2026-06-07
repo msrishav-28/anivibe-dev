@@ -2,8 +2,23 @@
 
 import { motion } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useAnalytics } from '@/hooks/use-queries';
+
+interface HeatmapApiRow {
+    date: string;
+    minutes?: number;
+    hours?: number;
+}
+
+const intensityColors = {
+    0: 'bg-white/5',
+    1: 'bg-primary-500/30',
+    2: 'bg-primary-500/50',
+    3: 'bg-primary-500/70',
+    4: 'bg-primary-400',
+};
 
 export function ActivityHeatmap() {
     const { data: analytics, isLoading } = useAnalytics();
@@ -16,12 +31,13 @@ export function ActivityHeatmap() {
         // Fill last 365 days with 0
         const days = [];
         const today = new Date();
-        const activityMap = new Map(analytics.map((a: any) => [a.date, a.minutes]));
+        const rows = analytics as HeatmapApiRow[];
+        const activityMap = new Map(rows.map((a) => [a.date, a.minutes ?? Math.round((a.hours ?? 0) * 60)]));
 
         for (let i = 364; i >= 0; i--) {
             const date = new Date(today);
             date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = date.toISOString().split('T')[0] ?? '';
             const minutes = activityMap.get(dateStr) || 0;
 
             // Calculate intensity (0-4) based on minutes

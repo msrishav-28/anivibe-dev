@@ -1,5 +1,5 @@
 """
-Recommendation schemas for Supabase
+Recommendation schemas.
 """
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field

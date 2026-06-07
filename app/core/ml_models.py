@@ -3,7 +3,7 @@ ML Models initialization and management
 """
 import logging
 from pathlib import Path
-from typing import Any, Tuple, Optional
+from importlib.util import find_spec
 
 from config import settings
 
@@ -28,18 +28,12 @@ _ml_libs_available = False
 def check_ml_availability():
     """Check if ML libraries are installed"""
     global _torch_available, _ml_libs_available
-    try:
-        import torch
-        _torch_available = True
-        import open_clip
-        import sentence_transformers
-        import transformers
-        _ml_libs_available = True
-        return True
-    except ImportError:
-        _torch_available = False
-        _ml_libs_available = False
-        return False
+    _torch_available = find_spec("torch") is not None
+    _ml_libs_available = all(
+        find_spec(module) is not None
+        for module in ("torch", "open_clip", "sentence_transformers", "transformers")
+    )
+    return _ml_libs_available
 
 
 async def init_ml_models():

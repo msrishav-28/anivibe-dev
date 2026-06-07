@@ -2,18 +2,14 @@
 Semantic search service using CLIP + BERT + LLM
 """
 import time
-import asyncio
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-import numpy as np
 
-from app.core.ml_models import encode_text_clip, encode_text_sbert
-from app.core.cache import cache_get, cache_set
 from app.models.anime import Anime
 from app.services.llm_parser import parse_query_with_llm
-from app.services.vector_search import search_by_clip, search_by_sbert
+from app.services.vector_search import search_by_sbert
 
 
 async def semantic_vibe_search(

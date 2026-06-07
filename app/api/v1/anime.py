@@ -15,45 +15,6 @@ from app.schemas.anime import AnimeResponse, AnimeSearch, GenreResponse, StudioR
 router = APIRouter()
 
 
-@router.get("/{anime_id}", response_model=AnimeResponse)
-async def get_anime_by_id(
-    anime_id: int,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Get anime by ID
-    """
-    # Try cache first
-    cache_key = f"anime:{anime_id}"
-    cached = await cache_get(cache_key)
-    if cached:
-        return cached
-    
-    # Query database with relationships
-    result = await db.execute(
-        select(Anime)
-        .options(
-            selectinload(Anime.genres),
-            selectinload(Anime.studios),
-            selectinload(Anime.tags)
-        )
-        .filter(Anime.id == anime_id)
-    )
-    anime = result.scalar_one_or_none()
-    
-    if not anime:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Anime not found"
-        )
-    
-    # Cache result
-    anime_dict = anime.to_dict(include_relationships=True)
-    await cache_set(cache_key, anime_dict, expire=3600)
-    
-    return anime_dict
-
-
 @router.get("/", response_model=dict)
 async def search_anime(
     search: AnimeSearch = Depends(),
@@ -291,3 +252,40 @@ async def get_popular_anime(
         "items": anime_data,
         "total": len(anime_data)
     }
+
+
+@router.get("/{anime_id}", response_model=AnimeResponse)
+async def get_anime_by_id(
+    anime_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get anime by ID
+    """
+    cache_key = f"anime:{anime_id}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return cached
+
+    result = await db.execute(
+        select(Anime)
+        .options(
+            selectinload(Anime.genres),
+            selectinload(Anime.studios),
+            selectinload(Anime.tags)
+        )
+        .filter(Anime.id == anime_id)
+    )
+    anime = result.scalar_one_or_none()
+
+    if not anime:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Anime not found"
+        )
+
+    anime_dict = anime.to_dict(include_relationships=True)
+    await cache_set(cache_key, anime_dict, expire=3600)
+
+    return anime_dict
+

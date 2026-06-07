@@ -2,7 +2,7 @@
 Anime and related models
 """
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, Float, Boolean, DateTime, Table, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Text, Float, Boolean, DateTime, Table, ForeignKey, Enum as SQLEnum, UniqueConstraint
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 import enum
@@ -14,22 +14,22 @@ from app.core.database import Base
 anime_genres = Table(
     'anime_genres',
     Base.metadata,
-    Column('anime_id', Integer, ForeignKey('anime.id', ondelete='CASCADE')),
-    Column('genre_id', Integer, ForeignKey('genres.id', ondelete='CASCADE'))
+    Column('anime_id', Integer, ForeignKey('anime.id', ondelete='CASCADE'), primary_key=True),
+    Column('genre_id', Integer, ForeignKey('genres.id', ondelete='CASCADE'), primary_key=True),
 )
 
 anime_studios = Table(
     'anime_studios',
     Base.metadata,
-    Column('anime_id', Integer, ForeignKey('anime.id', ondelete='CASCADE')),
-    Column('studio_id', Integer, ForeignKey('studios.id', ondelete='CASCADE'))
+    Column('anime_id', Integer, ForeignKey('anime.id', ondelete='CASCADE'), primary_key=True),
+    Column('studio_id', Integer, ForeignKey('studios.id', ondelete='CASCADE'), primary_key=True),
 )
 
 anime_tags = Table(
     'anime_tags',
     Base.metadata,
-    Column('anime_id', Integer, ForeignKey('anime.id', ondelete='CASCADE')),
-    Column('tag_id', Integer, ForeignKey('tags.id', ondelete='CASCADE'))
+    Column('anime_id', Integer, ForeignKey('anime.id', ondelete='CASCADE'), primary_key=True),
+    Column('tag_id', Integer, ForeignKey('tags.id', ondelete='CASCADE'), primary_key=True),
 )
 
 
@@ -118,12 +118,6 @@ class Anime(Base):
     # Computed fields
     popularity_score = Column(Float, nullable=True)  # Computed score for hidden gem discovery
     
-    # Vector Embeddings (PGVector)
-    # CLIP ViT-B-32 = 512 dimensions
-    embedding_clip = Column(Vector(512), nullable=True)
-    # SBERT all-MiniLM-L6-v2 = 384 dimensions
-    embedding_sbert = Column(Vector(384), nullable=True)
-    
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -135,6 +129,7 @@ class Anime(Base):
     tags = relationship("Tag", secondary=anime_tags, back_populates="anime")
     ratings = relationship("Rating", back_populates="anime", cascade="all, delete-orphan")
     watchlist_entries = relationship("WatchlistEntry", back_populates="anime", cascade="all, delete-orphan")
+    embeddings = relationship("AnimeEmbedding", back_populates="anime", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Anime(id={self.id}, title='{self.title}')>"
@@ -252,3 +247,23 @@ class Tag(Base):
             "category": self.category,
             "description": self.description
         }
+
+
+class AnimeEmbedding(Base):
+    """Versioned vector embedding for an anime."""
+
+    __tablename__ = "anime_embeddings"
+    __table_args__ = (
+        UniqueConstraint("anime_id", "model_name", "model_version", name="uq_anime_embedding_version"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    anime_id = Column(Integer, ForeignKey("anime.id", ondelete="CASCADE"), nullable=False, index=True)
+    model_name = Column(String(100), nullable=False, index=True)
+    model_version = Column(String(100), nullable=False, index=True)
+    dimensions = Column(Integer, nullable=False)
+    embedding = Column(Vector(), nullable=False)
+    source_dataset_version = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    anime = relationship("Anime", back_populates="embeddings")

@@ -33,7 +33,7 @@ export default function ProfilePage() {
   const { entries } = useWatchlistStore();
 
   // $10k Upgrade: Use React Query Hook
-  const { data: stats, isLoading } = useUserStats(user?.user_id);
+  const { data: stats, isLoading } = useUserStats(user?.user_id ?? user?.id);
 
   if (!user) {
     return (
@@ -84,7 +84,7 @@ export default function ProfilePage() {
               <div>
                 <GlitchText text={user.username} as="h1" className="text-4xl md:text-5xl font-bold text-white mb-2" />
                 <p className="text-muted-foreground font-mono text-sm tracking-wider">
-                  ID: {user.user_id.toString().padStart(6, '0')} • <span className="text-primary">NETRUNNER</span>
+                  ID: {(user.user_id ?? user.id).toString().padStart(6, '0')} • <span className="text-primary">NETRUNNER</span>
                 </p>
               </div>
 

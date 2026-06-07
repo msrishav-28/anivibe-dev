@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
-import { Anime, User, UserStats } from '@/types';
+import type { Anime } from '@/types';
 
 // ==================== KEY CONFIG ====================
 // Stale Time: 5 minutes (Data is considered fresh for 5 mins)
@@ -22,7 +22,7 @@ export function useSimilarAnime(id: number) {
         queryFn: async () => {
             const recommendations = await api.getSimilarAnime(id, 12);
             // Map recommendations to just the Anime object for the UI
-            return recommendations.map(rec => rec.anime || rec);
+            return recommendations.map((rec: { anime?: Anime } & Anime) => rec.anime || rec);
         },
         staleTime: STALE_TIME,
     });
@@ -57,8 +57,8 @@ export function useExplanation(animeId: number) {
 export function useAnalytics() {
     return useQuery({
         queryKey: ['analytics'],
-        queryFn: () => ({ /* mock analytics */ }),
-        enabled: false
+        queryFn: () => api.getWatchTimeAnalytics(),
+        enabled: true
     });
 }
 

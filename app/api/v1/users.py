@@ -1,5 +1,5 @@
 """
-User management endpoints for Supabase
+User management endpoints.
 """
 from typing import Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
@@ -7,13 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update
 from uuid import UUID
 
-from app.core.database import get_db, get_supabase
-from app.core.security import get_current_user, get_current_active_user
+from app.core.database import get_db
+from app.core.security import get_current_active_user
+from app.core.storage import upload_avatar as upload_avatar_to_r2
 from app.models.user import Profile
 from app.models.rating import Rating
 from app.models.watchlist import WatchlistEntry
-from app.schemas.user import UserResponse, UserUpdate
-from supabase import Client
+from app.schemas.user import UserUpdate
 
 router = APIRouter()
 
@@ -78,43 +78,19 @@ async def upload_avatar(
     avatar: UploadFile = File(...),
     current_user: Dict[str, Any] = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
-    supabase: Client = Depends(get_supabase)
 ):
     """
-    Upload user avatar
+    Upload user avatar to Cloudflare R2.
     """
     user_id = current_user["id"]
-    
-    # 1. Read file
-    file_content = await avatar.read()
-    file_ext = avatar.filename.split(".")[-1] if "." in avatar.filename else "jpg"
-    file_path = f"{user_id}/avatar.{file_ext}" 
-    
-    # 2. Upload to Supabase Storage
-    try:
-        # Assumes 'avatars' bucket exists. If not, create it manually in Supabase Dashboard.
-        res = supabase.storage.from_("avatars").upload(
-            file_path,
-            file_content,
-            {"content-type": avatar.content_type or "image/jpeg", "upsert": "true"}
-        )
-        
-        # 3. Get Public URL
-        public_url = supabase.storage.from_("avatars").get_public_url(file_path)
-        
-        # 4. Update Profile
-        await db.execute(
-            update(Profile).where(Profile.id == UUID(user_id)).values(avatar_url=public_url)
-        )
-        await db.commit()
-        
-        return public_url
-        
-    except Exception as e:
-        # Log error
-        import logging
-        logging.error(f"Avatar upload failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+    public_url = await upload_avatar_to_r2(user_id, avatar)
+
+    await db.execute(
+        update(Profile).where(Profile.id == UUID(user_id)).values(avatar_url=public_url)
+    )
+    await db.commit()
+
+    return {"avatar_url": public_url}
 
 
 @router.get("/{user_id}")
@@ -134,7 +110,7 @@ async def get_user_by_id(
         )
     
     result = await db.execute(
-        select(Profile).filter(Profile.id == uid, Profile.is_active == True)
+        select(Profile).filter(Profile.id == uid, Profile.is_active.is_(True))
     )
     profile = result.scalar_one_or_none()
     
@@ -221,11 +197,10 @@ async def get_user_statistics(
 async def delete_current_user(
     current_user: Dict[str, Any] = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
-    supabase: Client = Depends(get_supabase)
 ):
     """
     Delete current user account
-    Note: This only deletes the profile. Supabase auth user deletion requires admin API.
+    Note: this deletes only the AniVibe profile. Clerk user deletion is handled in Clerk.
     """
     user_id = UUID(current_user["id"])
     

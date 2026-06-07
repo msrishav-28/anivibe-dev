@@ -5,8 +5,9 @@ Implements hybrid recommendation system: Collaborative + Content-Based + GNN
 import time
 import logging
 from typing import Dict, Any, Optional, List
+from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 import numpy as np
 
@@ -19,6 +20,39 @@ from app.services.llm_parser import parse_query_with_llm
 from app.core.cache import cache_get, cache_set
 
 logger = logging.getLogger(__name__)
+
+
+async def _record_recommendation_event(
+    db: AsyncSession,
+    user_id: Optional[str],
+    request_params: Dict[str, Any],
+    recommendations: List[Dict[str, Any]],
+    method: str,
+    latency_ms: float,
+) -> None:
+    """Best-effort recommendation lineage logging."""
+    try:
+        from app.models.ops import RecommendationEvent
+
+        db.add(
+            RecommendationEvent(
+                user_id=UUID(user_id) if user_id else None,
+                request_params=request_params,
+                candidate_ids=[item["anime_id"] for item in recommendations],
+                scores={str(item["anime_id"]): item.get("score") for item in recommendations},
+                explanation_factors={
+                    str(item["anime_id"]): item.get("explanation") or item.get("similarity_reasons")
+                    for item in recommendations
+                },
+                model_name=method,
+                model_version="baseline",
+                latency_ms=latency_ms,
+            )
+        )
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        logger.warning("Recommendation event logging failed: %s", exc)
 
 
 async def get_personalized_recommendations(
@@ -176,6 +210,21 @@ async def get_personalized_recommendations(
         "user_id": user_id,
         "execution_time_ms": execution_time
     }
+    await _record_recommendation_event(
+        db=db,
+        user_id=user_id,
+        request_params={
+            "top_k": top_k,
+            "method": method,
+            "filters": filters,
+            "exclude_watched": exclude_watched,
+            "popularity_attenuation": popularity_attenuation,
+            "diversity_weight": diversity_weight,
+        },
+        recommendations=recommendations_list,
+        method=method,
+        latency_ms=execution_time,
+    )
     
     # Cache for 1 hour
     await cache_set(cache_key, result, expire=3600)
@@ -270,6 +319,14 @@ async def get_similar_anime(
         })
     
     execution_time = (time.time() - start_time) * 1000
+    await _record_recommendation_event(
+        db=db,
+        user_id=None,
+        request_params={"anime_id": anime_id, "top_k": top_k, "method": method},
+        recommendations=recommendations,
+        method="similar_anime",
+        latency_ms=execution_time,
+    )
     
     return {
         "recommendations": recommendations,
@@ -329,6 +386,20 @@ async def discover_hidden_gems(
         })
     
     execution_time = (time.time() - start_time) * 1000
+    await _record_recommendation_event(
+        db=db,
+        user_id=user_id,
+        request_params={
+            "top_k": top_k,
+            "max_popularity": max_popularity,
+            "min_score": min_score,
+            "genres": genres,
+            "tags": tags,
+        },
+        recommendations=recommendations,
+        method="hidden_gems",
+        latency_ms=execution_time,
+    )
     
     return {
         "recommendations": recommendations,

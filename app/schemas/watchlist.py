@@ -1,8 +1,8 @@
 """
-Watchlist schemas for Supabase
+Watchlist schemas.
 """
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -30,7 +30,7 @@ class WatchlistEntryUpdate(BaseModel):
 
 
 class WatchlistEntryResponse(WatchlistEntryBase):
-    """Watchlist entry response schema (Supabase UUID user)"""
+    """Watchlist entry response schema."""
     id: int
     user_id: str  # UUID as string
     progress: int = 0

@@ -1,5 +1,5 @@
 """
-Watchlist model for Supabase
+Watchlist model.
 """
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, UniqueConstraint
@@ -19,7 +19,7 @@ class WatchlistEntry(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     
-    # Foreign keys - user_id is UUID (Supabase auth.users)
+    # Foreign keys
     user_id = Column(UUID(as_uuid=True), ForeignKey('profiles.id', ondelete='CASCADE'), nullable=False, index=True)
     anime_id = Column(Integer, ForeignKey('anime.id', ondelete='CASCADE'), nullable=False, index=True)
     

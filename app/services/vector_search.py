@@ -1,21 +1,18 @@
 """
-Vector similarity search using Supabase pgvector
-Replaces FAISS implementation for production readiness
+Vector similarity search using Postgres pgvector.
 """
 import logging
-import json
 import httpx
-from typing import Dict, Optional, List, Any
+from typing import Dict
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
+from sqlalchemy import text
 from config import settings
 from app.core.ml_models import encode_text_sbert
-from app.models.anime import Anime
 
 logger = logging.getLogger(__name__)
 
 
-async def search_by_clip(query: str, top_k: int = 10) -> Dict[int, float]:
+async def search_by_clip(query: str, top_k: int = 10, db: AsyncSession = None) -> Dict[int, float]:
     """
     Search anime using CLIP embeddings via Modal microservice
     This is for TEXT-TO-IMAGE search (finding anime by visual description)
@@ -38,8 +35,8 @@ async def search_by_clip(query: str, top_k: int = 10) -> Dict[int, float]:
     # 1. We assume the Modal service has a dedicated text-to-image search endpoint
     #    OR we just use SBERT for now as a fallback if Modal isn't set up for text-clip
     
-    logger.warning("CLIP text-search via Modal not fully implemented, falling back to SBERT")
-    return await search_by_sbert(query, top_k)
+    logger.warning("CLIP text-search is unavailable; using SBERT fallback")
+    return await search_by_sbert(query, top_k, db=db)
 
 
 async def search_by_image(image_base64: str, top_k: int = 20) -> Dict[int, float]:
@@ -133,8 +130,7 @@ async def search_by_sbert(query: str, top_k: int = 10, db: AsyncSession = None) 
         if query_embedding is None:
              return await _search_remote_sbert(query, top_k)
 
-        # 2. Query Supabase using pgvector <=> operator (cosine distance)
-        # 1 - (a <=> b) = cosine similarity
+        # 2. Query Postgres pgvector. 1 - (a <=> b) = cosine similarity.
         if not db:
             logger.error("Database session required for local vector search")
             return {}
@@ -142,14 +138,21 @@ async def search_by_sbert(query: str, top_k: int = 10, db: AsyncSession = None) 
         embedding_list = query_embedding.tolist()[0] if hasattr(query_embedding, "tolist") else query_embedding
         
         stmt = text("""
-            SELECT id, 1 - (embedding_sbert <=> :embedding) as similarity
-            FROM anime
-            WHERE embedding_sbert IS NOT NULL
-            ORDER BY embedding_sbert <=> :embedding
+            SELECT anime_id, 1 - (embedding <=> CAST(:embedding AS vector)) as similarity
+            FROM anime_embeddings
+            WHERE model_name = :model_name
+            ORDER BY embedding <=> CAST(:embedding AS vector)
             LIMIT :limit
         """)
         
-        result = await db.execute(stmt, {"embedding": str(embedding_list), "limit": top_k})
+        result = await db.execute(
+            stmt,
+            {
+                "embedding": str(embedding_list),
+                "model_name": settings.sbert_model_name,
+                "limit": top_k,
+            },
+        )
         rows = result.fetchall()
         
         return {row[0]: float(row[1]) for row in rows}

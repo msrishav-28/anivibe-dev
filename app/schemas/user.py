@@ -1,5 +1,5 @@
 """
-User schemas for Supabase
+User schemas.
 """
 from datetime import datetime
 from typing import Optional
@@ -13,7 +13,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    """Schema for creating a new user (Supabase signup)"""
+    """Schema for creating a user profile."""
     password: str = Field(..., min_length=8, max_length=100)
     full_name: Optional[str] = Field(None, max_length=100)
     
@@ -48,7 +48,7 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(BaseModel):
-    """Schema for user response (Supabase UUID)"""
+    """Schema for user response."""
     id: str  # UUID as string
     user_id: Optional[str] = None  # Alias for frontend compatibility
     username: str
@@ -94,7 +94,7 @@ class TokenWithUser(BaseModel):
 
 
 class TokenPayload(BaseModel):
-    """Schema for token payload (Supabase UUID)"""
+    """Schema for token payload."""
     sub: Optional[str] = None  # UUID as string
     exp: Optional[int] = None
     type: Optional[str] = None

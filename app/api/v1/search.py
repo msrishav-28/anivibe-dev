@@ -1,19 +1,34 @@
 """
 Semantic search endpoints
 """
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.schemas.recommendation import SemanticSearchRequest, RecommendationBatchResponse
-from app.services.semantic_search import semantic_vibe_search
+from config import settings
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
-
-from pydantic import BaseModel
 
 class VisualSearchRequest(BaseModel):
     image_url: str
+    top_k: int = Field(10, ge=1, le=50)
+
+
+async def _record_search_event(db: AsyncSession, **kwargs) -> None:
+    """Best-effort search event logging; never block user-facing search."""
+    try:
+        from app.models.ops import SearchEvent
+
+        db.add(SearchEvent(**kwargs))
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        logger.warning("Search event logging failed: %s", exc)
 
 @router.post("/visual", response_model=dict)
 async def visual_search(
@@ -23,15 +38,33 @@ async def visual_search(
     """
     Visual search using image URL or Base64
     """
+    if not settings.enable_image_search:
+        raise HTTPException(status_code=404, detail="Visual search is disabled until local CLIP evaluation passes")
+
     from app.services.vector_search import search_by_image
     from app.models.anime import Anime
     from sqlalchemy import select
     
     # 1. Get similar anime IDs from Vector Service
-    results = await search_by_image(request.image_url, top_k=10)
+    results = await search_by_image(request.image_url, top_k=request.top_k)
     
     if not results:
-        return {"results": []}
+        await _record_search_event(
+            db,
+            query=request.image_url[:500],
+            search_type="visual",
+            result_ids=[],
+            model_name=f"clip-{settings.clip_model_name}-{settings.clip_pretrained}",
+            model_version="poster-baseline",
+            fallback_used=None,
+        )
+        return {
+            "results": [],
+            "model_name": f"clip-{settings.clip_model_name}-{settings.clip_pretrained}",
+            "model_version": "poster-baseline",
+            "fallback_used": False,
+            "score_source": "ml_service",
+        }
         
     # 2. Fetch details from DB
     anime_ids = list(results.keys())
@@ -51,8 +84,23 @@ async def visual_search(
         
     # Sort by similarity
     response_data.sort(key=lambda x: x["similarity"], reverse=True)
+    await _record_search_event(
+        db,
+        query=request.image_url[:500],
+        search_type="visual",
+        result_ids=[item["id"] for item in response_data],
+        model_name=f"clip-{settings.clip_model_name}-{settings.clip_pretrained}",
+        model_version="poster-baseline",
+        fallback_used=None,
+    )
     
-    return {"results": response_data}
+    return {
+        "results": response_data,
+        "model_name": f"clip-{settings.clip_model_name}-{settings.clip_pretrained}",
+        "model_version": "poster-baseline",
+        "fallback_used": False,
+        "score_source": "ml_service",
+    }
 
 
 @router.post("/semantic", response_model=RecommendationBatchResponse)
@@ -68,6 +116,8 @@ async def semantic_search(
     - "dark cyberpunk aesthetic with intense action"
     """
     try:
+        from app.services.semantic_search import semantic_vibe_search
+
         results = await semantic_vibe_search(
             query=request.query,
             top_k=request.top_k,
@@ -77,6 +127,16 @@ async def semantic_search(
             text_weight=request.text_weight,
             filters=request.filters,
             db=db
+        )
+        await _record_search_event(
+            db,
+            query=request.query,
+            search_type="semantic",
+            result_ids=[item["anime_id"] for item in results.get("recommendations", [])],
+            model_name=settings.sbert_model_name,
+            model_version="baseline",
+            fallback_used="clip_to_sbert" if request.use_clip and not settings.enable_image_search else None,
+            latency_ms=results.get("execution_time_ms"),
         )
         
         return results

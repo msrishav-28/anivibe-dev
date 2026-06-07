@@ -1,14 +1,13 @@
 # Render Blueprint for AniVibe Backend
-# Deploy: Connect repo in Render dashboard → It will auto-detect this file
+# Deploy: connect the repo in Render dashboard; Render will auto-detect this file.
 
 services:
-  # FastAPI Backend
   - type: web
     name: anivibe-backend
     runtime: python
-    region: singapore  # Closest to Mumbai Supabase
-    plan: starter  # Free tier (512MB RAM)
-    buildCommand: pip install -r requirements-lite.txt
+    region: singapore
+    plan: starter
+    buildCommand: pip install -r requirements-api.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
@@ -17,27 +16,36 @@ services:
       - key: DEBUG
         value: false
       - key: SECRET_KEY
-        generateValue: true  # Auto-generate secure key
-      - key: SUPABASE_URL
-        sync: false  # Set in dashboard
-      - key: SUPABASE_ANON_KEY
+        generateValue: true
+      - key: DATABASE_URL
         sync: false
-      - key: SUPABASE_SERVICE_KEY
+      - key: DATABASE_MIGRATION_URL
+        sync: false
+      - key: CLERK_ISSUER
+        sync: false
+      - key: CLERK_JWKS_URL
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_PUBLIC_BASE_URL
         sync: false
       - key: GEMINI_API_KEY
         sync: false
-      - key: REDIS_HOST
+      - key: REDIS_URL
         fromService:
           type: redis
           name: anivibe-redis
-          property: host
-      - key: REDIS_PORT
-        fromService:
-          type: redis
-          name: anivibe-redis
-          property: port
+          property: connectionString
       - key: ML_SERVICE_URL
-        value: https://your-modal-app.modal.run  # Update after Modal deployment
+        value: https://your-modal-app.modal.run
       - key: USE_GPU
         value: false
       - key: ENABLE_IMAGE_SEARCH
@@ -45,12 +53,11 @@ services:
       - key: ENABLE_GNN
         value: false
       - key: CORS_ORIGINS
-        value: https://anivibe.vercel.app,https://www.anivibe.com  # Update with your domain
+        value: https://anivibe.vercel.app,https://www.anivibe.com
 
-  # Redis Cache
   - type: redis
     name: anivibe-redis
     region: singapore
-    plan: starter  # Free tier (25MB)
-    maxmemoryPolicy: allkeys-lru  # Evict least recently used
-    ipAllowList: []  # Allow all (backend only)
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []

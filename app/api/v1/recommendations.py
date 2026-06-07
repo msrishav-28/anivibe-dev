@@ -1,8 +1,8 @@
 """
-Recommendation endpoints for Supabase
+Recommendation endpoints.
 """
 from typing import Dict, Any, Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -12,14 +12,6 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.core.security import get_current_active_user
 from app.models.anime import Anime
-from app.services.recommendations import (
-    get_personalized_recommendations,
-    get_similar_anime,
-    discover_hidden_gems,
-    get_mood_based_recommendations,
-    get_user_taste_profile
-)
-
 router = APIRouter()
 
 
@@ -67,6 +59,8 @@ async def personalized_recommendations(
     user_id = UUID(current_user["id"])
     
     try:
+        from app.services.recommendations import get_personalized_recommendations
+
         results = await get_personalized_recommendations(
             user_id=str(user_id),
             top_k=request.top_k,
@@ -97,6 +91,8 @@ async def similar_anime(
     Uses multimodal features (CLIP + BERT + metadata)
     """
     try:
+        from app.services.recommendations import get_similar_anime
+
         results = await get_similar_anime(
             anime_id=request.anime_id,
             top_k=request.top_k,
@@ -123,6 +119,8 @@ async def hidden_gems(
     High-quality, low-popularity titles
     """
     try:
+        from app.services.recommendations import discover_hidden_gems
+
         results = await discover_hidden_gems(
             user_id=request.user_id,
             top_k=request.top_k,
@@ -152,6 +150,8 @@ async def mood_based_recommendations(
     Uses sentiment analysis and LLM parsing
     """
     try:
+        from app.services.recommendations import get_mood_based_recommendations
+
         results = await get_mood_based_recommendations(
             mood=request.mood,
             top_k=request.top_k,
@@ -180,6 +180,8 @@ async def taste_profile(
     user_id = UUID(current_user["id"])
     
     try:
+        from app.services.recommendations import get_user_taste_profile
+
         profile = await get_user_taste_profile(
             user_id=str(user_id),
             db=db
@@ -203,7 +205,6 @@ async def cold_start_recommendations(
     Get recommendations for new users (cold start)
     Returns popular, highly-rated anime across diverse genres
     """
-    import random
     
     # Get top-rated anime with diverse genres
     result = await db.execute(
