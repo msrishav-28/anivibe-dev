@@ -1,19 +1,17 @@
 """
 Analytics API endpoints
 """
-from typing import List, Dict, Any
-from fastapi import APIRouter, Depends
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func
 from uuid import UUID
-from datetime import datetime, timedelta
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user
-from app.models.user import Profile
 from app.models.watchlist import WatchlistEntry
 from app.models.anime import Anime, anime_genres, Genre
-from app.schemas.analytics import GenreDistribution, HeatmapData, AnalyticsStats
+from app.schemas.analytics import GenreDistribution, HeatmapData
 
 router = APIRouter()
 
@@ -24,7 +22,10 @@ async def get_genre_distribution(
     db: AsyncSession = Depends(get_db)
 ):
     """Get distribution of genres in user's watchlist/history"""
-    target_user_id = UUID(user_id) if user_id else UUID(current_user["id"])
+    current_user_id = UUID(current_user["id"])
+    target_user_id = UUID(user_id) if user_id else current_user_id
+    if target_user_id != current_user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot access another user's analytics")
     
     # Calculate genre distribution from Completed or Watching anime
     query = select(Genre.name, func.count(Genre.id))\
@@ -61,7 +62,10 @@ async def get_watch_time_heatmap(
     db: AsyncSession = Depends(get_db)
 ):
     """Get watch time heatmap data"""
-    target_user_id = UUID(user_id) if user_id else UUID(current_user["id"])
+    current_user_id = UUID(current_user["id"])
+    target_user_id = UUID(user_id) if user_id else current_user_id
+    if target_user_id != current_user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot access another user's analytics")
     
     # Use WatchlistEntry updated_at/completed_at for heatmap
     # This replaces the dependency on the Social/Activity table

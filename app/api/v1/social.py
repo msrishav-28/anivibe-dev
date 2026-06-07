@@ -26,7 +26,7 @@ async def share_anime(
     
     return {
         "url": share_url,
-        "message": f"Check out this anime on AniVibe!",
+        "message": "Check out this anime on AniVibe!",
         "hashtags": ["anime", "anivibe", "recommendation"]
     }
 

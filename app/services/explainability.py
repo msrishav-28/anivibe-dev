@@ -3,25 +3,18 @@ Explainability service using SHAP and LIME
 Provides interpretable explanations for recommendations
 """
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
+from importlib.util import find_spec
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# Try to import SHAP and LIME
-try:
-    import shap
-    SHAP_AVAILABLE = True
-except ImportError:
-    SHAP_AVAILABLE = False
-    logger.warning("SHAP not available. Install with: pip install shap")
-
-try:
-    from lime import lime_tabular
-    LIME_AVAILABLE = True
-except ImportError:
-    LIME_AVAILABLE = False
-    logger.warning("LIME not available. Install with: pip install lime")
+SHAP_AVAILABLE = find_spec("shap") is not None
+LIME_AVAILABLE = find_spec("lime") is not None
+if not SHAP_AVAILABLE:
+    logger.info("SHAP not available. Install requirements-ml.txt to enable it.")
+if not LIME_AVAILABLE:
+    logger.info("LIME not available. Install requirements-ml.txt to enable it.")
 
 
 class RecommendationExplainer:

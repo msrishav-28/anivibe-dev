@@ -10,7 +10,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-3178C6.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC.svg?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
-[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL_15-3ECF8E.svg?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
+[![Neon](https://img.shields.io/badge/Neon-PostgreSQL_+_pgvector-00E599.svg?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.tech/)
 [![pgvector](https://img.shields.io/badge/pgvector-Vector_Search-2CA5E0.svg?style=for-the-badge&logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
@@ -30,18 +30,20 @@
 
 ---
 
-## Real AI Features (No Mocks)
+## Production Readiness Status
 
 > [!IMPORTANT]
-> The AI features in this project are **LIVE** and rely on **Supabase pgvector** and **Modal** GPU microservices.
-> *   **Visual Search**: Active (Uses CLIP via Modal)
-> *   **Vibe Search**: Active (Uses SBERT via Supabase)
-> *   **Recommendations**: Active (Hybrid Engine)
+> AniVibe is being hardened for production. The source of truth is
+> [`PRODUCTION_READINESS.md`](PRODUCTION_READINESS.md). Current AI behavior should be treated as
+> baseline or beta unless that tracker marks it as production.
+> *   **Semantic Search**: Baseline pgvector/SBERT path.
+> *   **Visual Search**: Beta Modal/CLIP path; requires generated CLIP embeddings.
+> *   **Recommendations**: Baseline content/collaborative path; GNN/BERT4Rec are not production.
 
 ### 1. Semantic Vibe Search
 Type: *"A cyberpunk city with rain and neon lights"*
 *   **Tech**: **SBERT (Sentence-BERT)** generates a 384-dimensional vector from your query.
-*   **Vector DB**: Queries **Supabase** using Cosine Distance (`<=>`) to find anime mentions or clusters that match that *exact* vibe.
+*   **Vector DB**: Queries **Neon/Postgres pgvector** using cosine distance (`<=>`) against versioned embeddings.
 
 ### 2. Reverse Image Search
 Upload a screenshot.
@@ -62,7 +64,9 @@ graph TD
     Client(Next.js Frontend) -->|REST API| API(FastAPI Backend)
     
     subgraph "Infrastructure"
-        API -->|Auth & Data| DB[(Supabase PostgreSQL)]
+        API -->|Data| DB[(Neon PostgreSQL)]
+        Client -->|Auth| Clerk(Clerk)
+        API -->|JWT Verification| Clerk
         DB -->|Vector Search| PGVector(pgvector Ext)
         API -->|Cache| Redis(Redis 7)
     end
@@ -78,24 +82,28 @@ graph TD
 | :--- | :--- | :--- |
 | **Frontend** | **Next.js 14 + Tailwind** | Server-side rendering for SEO, Framer Motion for premium feel. |
 | **Backend** | **FastAPI (Python)** | High-performance async API, native Pydantic integration. |
-| **Database** | **Supabase** | Managed PostgreSQL with Auth and `pgvector` built-in. |
+| **Database** | **Neon Postgres** | Managed PostgreSQL with `pgvector`, branching, and pooled connections. |
+| **Auth** | **Clerk** | Hosted auth with JWT verification in the backend. |
+| **Storage** | **Cloudflare R2** | S3-compatible media storage for avatars and future poster assets. |
 | **Vectors** | **SBERT + CLIP** | State-of-the-art semantic text and image understanding. |
 | **Infra** | **Docker + Render** | Portable, distinct containerization. |
 
 ---
 
-## Quick Start (Production Ready)
+## Quick Start
 
 ### Prerequisites
 *   Docker & Docker Compose
-*   Supabase Account (Active Project)
-*   Microservice (Modal) Account (Optional, for Image Search)
+*   Neon Postgres database with pgvector
+*   Clerk application
+*   Cloudflare R2 bucket for uploads
+*   Modal account (optional for image search)
 
 ### 1. Environment Setup
 ```bash
 cp .env.example .env
 ```
-Fill in your **Supabase credentials**. The `DATABASE_URL` is optional if you provide `SUPABASE_URL` and `SUPABASE_DB_PASSWORD`.
+Fill in `DATABASE_URL`, `DATABASE_MIGRATION_URL`, Clerk, R2, Redis, and optional Modal credentials.
 
 ### 2. Run with Docker
 **Standard Mode (With Local ML):**
@@ -105,7 +113,7 @@ docker-compose up -d --build
 **Lightweight Mode (Cloud-Only):**
 If you want to run like the free-tier production setup:
 ```bash
-pip install -r requirements-lite.txt
+pip install -r requirements-api.txt
 uvicorn app.main:app
 ```
 *   **Frontend**: `http://localhost:3000`

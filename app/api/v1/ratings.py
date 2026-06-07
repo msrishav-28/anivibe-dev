@@ -1,8 +1,9 @@
 """
-Rating endpoints for Supabase
+Rating endpoints.
 """
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from uuid import UUID
@@ -13,10 +14,6 @@ from app.models.rating import Rating
 from app.models.anime import Anime
 
 router = APIRouter()
-
-
-# Request/Response schemas (inline for simplicity)
-from pydantic import BaseModel, Field
 
 
 class RatingCreate(BaseModel):
@@ -104,6 +101,68 @@ async def get_user_ratings(
     ratings = result.scalars().all()
     
     return [r.to_dict() for r in ratings]
+
+
+@router.get("/anime/{anime_id}")
+async def get_rating_for_anime(
+    anime_id: int,
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get current user's rating for an anime.
+    """
+    user_id = UUID(current_user["id"])
+
+    result = await db.execute(
+        select(Rating).filter(
+            and_(
+                Rating.anime_id == anime_id,
+                Rating.user_id == user_id
+            )
+        )
+    )
+    rating = result.scalar_one_or_none()
+
+    if not rating:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Rating not found"
+        )
+
+    return rating.to_dict()
+
+
+@router.delete("/anime/{anime_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_rating_for_anime(
+    anime_id: int,
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Delete current user's rating for an anime.
+    """
+    user_id = UUID(current_user["id"])
+
+    result = await db.execute(
+        select(Rating).filter(
+            and_(
+                Rating.anime_id == anime_id,
+                Rating.user_id == user_id
+            )
+        )
+    )
+    rating = result.scalar_one_or_none()
+
+    if not rating:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Rating not found"
+        )
+
+    await db.delete(rating)
+    await db.commit()
+    return None
 
 
 @router.get("/{rating_id}")

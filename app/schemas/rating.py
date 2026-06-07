@@ -1,5 +1,5 @@
 """
-Rating schemas for Supabase
+Rating schemas.
 """
 from datetime import datetime
 from typing import Optional, List
@@ -24,7 +24,7 @@ class RatingUpdate(BaseModel):
 
 
 class RatingResponse(RatingBase):
-    """Rating response schema (Supabase UUID user)"""
+    """Rating response schema."""
     id: int
     user_id: str  # UUID as string
     review: Optional[str] = None

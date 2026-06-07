@@ -1,10 +1,9 @@
 """
 Review API endpoints
 """
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func, update
 from sqlalchemy.orm import selectinload
 from uuid import UUID
 
@@ -173,7 +172,10 @@ async def vote_review(
     await db.commit()
     
     # Update helpful count on review (could be done via trigger or here)
-    count_query = select(func.count()).filter(ReviewVote.review_id == review_id, ReviewVote.is_helpful == True)
+    count_query = select(func.count()).filter(
+        ReviewVote.review_id == review_id,
+        ReviewVote.is_helpful.is_(True),
+    )
     helpful_count = (await db.execute(count_query)).scalar()
     
     await db.execute(

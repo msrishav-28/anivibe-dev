@@ -3,7 +3,7 @@ LLM query parser service
 """
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 try:
     import google.generativeai as genai

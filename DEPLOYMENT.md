@@ -1,114 +1,146 @@
-# AniVibe Deployment Guide (Cloud-Only Edition)
+# AniVibe Deployment Guide
 
-> **Note:** This project is configured for **Zero-Terminal Deployment**. You do not need to run commands locally. All deployments happen via GitHub Actions.
+This guide reflects the current production target:
 
-## Architecture Overview
+- Frontend: Vercel
+- Backend API: Render
+- Database: Neon Postgres with pgvector
+- Auth: Clerk
+- Storage: Cloudflare R2
+- Cache: Upstash Redis or Render Redis
+- ML service: Modal
 
-```
-Vercel (Frontend) → Render (Backend) → Supabase (Database)
-                         ↓
-                    Modal (ML Models)
-```
+## 1. Neon Postgres
 
----
+1. Create a Neon project and database.
+2. Enable pgvector:
 
-## 1. Supabase (Database) - DEPLOY FIRST
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS vector;
+   ```
 
-### Already Done
-Your Supabase project should already be set up. Just note down:
+3. Set backend environment variables:
 
-```
-Project URL: https://xxxxx.supabase.co
-Anon Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-Service Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
+   ```text
+   DATABASE_URL=postgresql+asyncpg://...pooler.../anivibe?ssl=require
+   DATABASE_MIGRATION_URL=postgresql://...direct.../anivibe?ssl=require
+   ```
 
-### Run Migrations
-1. Go to Supabase Dashboard -> SQL Editor
-2. Run migration files from `alembic/versions/` (Copy/Paste content)
-*Note: Since you have no local terminal, you must run SQL manually or connect a cloud SQL client.*
+4. Run migrations:
 
----
+   ```bash
+   alembic upgrade head
+   ```
 
-## 2. Modal (ML Models) - AUTOMATED
+## 2. Clerk
 
-We have set up a **GitHub Action** to deploy this for you.
+1. Create a Clerk application.
+2. Set frontend variables in Vercel:
 
-### Step 1: Get Token
-1. Go to [modal.com](https://modal.com) -> Settings -> API Tokens.
-2. Create a new token.
+   ```text
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
+   CLERK_SECRET_KEY=...
+   ```
 
-### Step 2: Add Secrets to GitHub
-1. Go to your GitHub Repo -> **Settings** -> **Secrets and variables** -> **Actions**.
-2. Add `MODAL_TOKEN_ID`
-3. Add `MODAL_TOKEN_SECRET`
+3. Set backend variables in Render:
 
-### Step 3: Trigger Deployment
-*   Just **push any change** to the `main` branch.
-*   Go to "Actions" tab in GitHub to see the URL (e.g., `https://...modal.run`).
+   ```text
+   CLERK_ISSUER=https://your-clerk-domain
+   CLERK_JWKS_URL=https://your-clerk-domain/.well-known/jwks.json
+   CLERK_SECRET_KEY=...
+   ```
 
----
+The backend does not own signup, login, refresh, logout, or password reset flows. It verifies Clerk bearer tokens and creates the internal AniVibe profile on first authenticated API request.
 
-## 3. Render (Backend API)
+## 3. Cloudflare R2
 
-### Step 1: Create Service
-1. Go to [render.com](https://render.com)
-2. **New** -> **Web Service**
-3. Connect your Repo.
+1. Create an R2 bucket for media.
+2. Configure a public domain or CDN route.
+3. Set backend variables:
 
-### Step 2: Configure Environment
-Render will auto-detect `render.yaml`, but verify:
-*   **Build Command**: `pip install -r requirements-lite.txt` (This is CRITICAL for free tier)
-*   **Start Command**: `uvicorn app.main:app ...`
+   ```text
+   R2_ACCOUNT_ID=...
+   R2_ACCESS_KEY_ID=...
+   R2_SECRET_ACCESS_KEY=...
+   R2_BUCKET=anivibe-media
+   R2_PUBLIC_BASE_URL=https://media.yourdomain.com
+   ```
 
-### Step 3: Set Environment Variables
-Add these in the Dashboard:
+## 4. Redis
 
-```bash
-# Database
-SUPABASE_URL=https://xxxxx.supabase.co
-SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_KEY=...
-SUPABASE_DB_PASSWORD=...
+Set `REDIS_URL` to an Upstash or Render Redis connection string. In production, set:
 
-# ML Service (From Step 2)
-ML_SERVICE_URL=https://your-workspace--anivibe-ml-semantic-search.modal.run
-ENABLE_IMAGE_SEARCH=true
-USE_GPU=false
+```text
+REDIS_REQUIRED=true
 ```
 
----
+## 5. Modal ML Service
 
-## 4. Vercel (Frontend)
+1. Create a Modal secret named `anivibe-production`.
+2. Add `DATABASE_URL` to that secret.
+3. Deploy:
 
-### Step 1: Import Project
-1. Go to Vercel Dashboard.
-2. Import `anivibe-dev` repo.
-3. Select `frontend` folder as Root Directory.
+   ```bash
+   modal deploy modal_app.py
+   ```
 
-### Step 2: Set Environment Variables
-```bash
+4. Set `ML_SERVICE_URL` in Render to the Modal endpoint URL.
+
+## 6. Render Backend
+
+Render uses `render.yaml`.
+
+Confirm these values:
+
+```text
+buildCommand=pip install -r requirements-api.txt
+startCommand=uvicorn app.main:app --host 0.0.0.0 --port $PORT
+healthCheckPath=/health
+```
+
+Required env vars:
+
+```text
+DATABASE_URL
+DATABASE_MIGRATION_URL
+CLERK_ISSUER
+CLERK_JWKS_URL
+CLERK_SECRET_KEY
+R2_ACCOUNT_ID
+R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY
+R2_BUCKET
+R2_PUBLIC_BASE_URL
+REDIS_URL
+ML_SERVICE_URL
+CORS_ORIGINS
+```
+
+## 7. Vercel Frontend
+
+Set:
+
+```text
 NEXT_PUBLIC_API_URL=https://your-render-backend.onrender.com/api/v1
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-NEXT_PUBLIC_ENABLE_IMAGE_SEARCH=true
+NEXT_PUBLIC_APP_URL=https://your-frontend-domain
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
+CLERK_SECRET_KEY=...
 ```
 
-### Step 3: Deploy
-Click **Deploy**.
+## 8. Release Gate
 
----
+Before production:
 
-## Verify Deployment
+```bash
+python -c "import app.main"
+python -m pytest tests -q
+npm --prefix frontend run type-check
+```
 
-### Checklist
-- [ ] GitHub Action "Deploy Modal App" matches (Remote ML)
-- [ ] Render Backend `/health` returns `healthy`
-- [ ] Frontend loads and features work:
-    - [ ] Visual Search (`/search/image`)
-    - [ ] Personalized Feed (Home Page)
-    - [ ] Reviews & Ratings (Anime Detail)
-    - [ ] Profile Editing (Settings Tab)
-- [ ] **Low-End Optimization**: Disabled (High Performance Mode Active)
+Also verify:
 
----
+- `alembic upgrade head` succeeds on a clean Neon branch.
+- `/health` returns 200 in staging.
+- Clerk-authenticated requests can call `/api/v1/auth/me`.
+- Avatar upload writes to R2.
+- Semantic search returns real pgvector results after embeddings are generated.

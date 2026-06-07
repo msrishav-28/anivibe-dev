@@ -1,14 +1,14 @@
 """
 Social feature schemas
 """
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
 from datetime import datetime
 from app.schemas.anime import AnimeResponse
 
 class UserBasic(BaseModel):
     id: str
-    username: string
+    username: str
     avatar_url: Optional[str] = None
     
     class Config:

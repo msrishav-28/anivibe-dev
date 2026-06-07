@@ -5,9 +5,8 @@ import torch
 import logging
 from typing import List, Dict, Optional
 from pathlib import Path
-import pickle
 
-from app.models.gnn_model import GraphSAGERecommender, GATRecommender, build_graph_data
+from app.models.gnn_model import GraphSAGERecommender, GATRecommender
 from config import settings
 
 logger = logging.getLogger(__name__)

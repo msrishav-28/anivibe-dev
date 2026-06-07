@@ -1,5 +1,5 @@
 """
-User/Profile model for Supabase
+User/Profile model.
 """
 from datetime import datetime
 from sqlalchemy import Column, String, Boolean, DateTime, Text, Float, Integer
@@ -12,18 +12,15 @@ from app.core.database import Base
 
 class Profile(Base):
     """
-    User profile model - extends Supabase auth.users.
-    
-    The ID is a UUID that references auth.users(id) in Supabase.
-    Profile is automatically created when a user signs up via trigger.
+    Internal AniVibe profile mapped to an external Clerk user.
     """
     
     __tablename__ = "profiles"
     
-    # Primary key is UUID referencing auth.users
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    external_auth_id = Column(String(255), unique=True, index=True, nullable=True)
     username = Column(String(50), unique=True, index=True, nullable=False)
-    email = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=False, index=True)
     
     # Profile
     full_name = Column(String(100), nullable=True)
@@ -66,6 +63,7 @@ class Profile(Base):
         return {
             "id": str(self.id),
             "user_id": str(self.id),  # Alias for frontend compatibility
+            "external_auth_id": self.external_auth_id,
             "username": self.username,
             "email": self.email,
             "full_name": self.full_name,

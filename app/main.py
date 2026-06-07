@@ -1,11 +1,14 @@
 """
 AniVibe FastAPI Application
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 import logging
+import time
+import uuid
 
 from config import settings
 from app.core.database import init_db, close_db
@@ -25,6 +28,8 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"Environment: {settings.environment}")
+    if settings.is_production and not settings.auth_required:
+        raise RuntimeError("AUTH_REQUIRED=false is not allowed in production")
     
     try:
         await init_db()
@@ -68,6 +73,66 @@ app.add_middleware(
 
 # GZip Compression
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+
+@app.middleware("http")
+async def request_context_middleware(request: Request, call_next):
+    from app.core.rate_limit import check_rate_limit
+
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    start = time.perf_counter()
+    try:
+        rate_limited = await check_rate_limit(request)
+        if rate_limited is not None:
+            rate_limited.headers["X-Request-ID"] = request_id
+            return rate_limited
+        response = await call_next(request)
+    except Exception:
+        logger.exception("Unhandled request error", extra={"request_id": request_id})
+        raise
+    latency_ms = (time.perf_counter() - start) * 1000
+    response.headers["X-Request-ID"] = request_id
+    logger.info(
+        "request completed",
+        extra={
+            "request_id": request_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": response.status_code,
+            "latency_ms": round(latency_ms, 2),
+        },
+    )
+    return response
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "code": f"http_{exc.status_code}",
+                "message": exc.detail if isinstance(exc.detail, str) else "Request failed",
+                "details": exc.detail if not isinstance(exc.detail, str) else None,
+            }
+        },
+        headers=exc.headers,
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled exception: %s", exc)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "code": "internal_server_error",
+                "message": "Internal server error",
+                "details": None,
+            }
+        },
+    )
 
 # Include API routes
 app.include_router(api_router, prefix=settings.api_v1_prefix)

@@ -11,14 +11,23 @@ from typing import List, Dict, Optional
 import time
 from datetime import datetime
 import sys
+from collections import Counter
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from app.core.database import AsyncSessionLocal
-from app.models.anime import Anime, Genre, Studio, AnimeType, AnimeStatus, AnimeSeason
-from app.models.anime import anime_genres, anime_studios
+from sqlalchemy import func, select
+from app.core import database
+from app.models.anime import (
+    Anime,
+    Genre,
+    Studio,
+    AnimeType,
+    AnimeStatus,
+    AnimeSeason,
+    anime_genres,
+    anime_studios,
+)
+from app.models.ops import DatasetVersion
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -170,11 +179,104 @@ class MALDataFetcher:
         logger.info(f"✅ Saved CSV: {csv_file}")
 
 
-async def import_to_database(anime_data: List[Dict]):
+def validate_raw_anime_data(anime_data: List[Dict]) -> Dict[str, object]:
+    """Return deterministic validation metadata for fetched Jikan records."""
+    mal_ids = [item.get("mal_id") for item in anime_data if item.get("mal_id") is not None]
+    duplicate_mal_ids = sorted(mal_id for mal_id, count in Counter(mal_ids).items() if count > 1)
+    missing = {
+        "title": sum(1 for item in anime_data if not item.get("title")),
+        "synopsis": sum(1 for item in anime_data if not item.get("synopsis")),
+        "score": sum(1 for item in anime_data if item.get("score") is None),
+        "members": sum(1 for item in anime_data if item.get("members") is None),
+        "image_url": sum(
+            1
+            for item in anime_data
+            if not item.get("images", {}).get("jpg", {}).get("large_image_url")
+        ),
+    }
+    failures = {
+        "duplicate_mal_ids": duplicate_mal_ids,
+        "missing_required": {key: value for key, value in missing.items() if value},
+    }
+    return {
+        "record_count": len(anime_data),
+        "unique_mal_ids": len(set(mal_ids)),
+        "failures": {key: value for key, value in failures.items() if value},
+    }
+
+
+async def validate_database_import(session) -> Dict[str, object]:
+    """Validate core local smoke import invariants after database writes."""
+    anime_count = (await session.execute(select(func.count(Anime.id)))).scalar() or 0
+    genre_join_count = (await session.execute(select(func.count()).select_from(anime_genres))).scalar() or 0
+    studio_join_count = (await session.execute(select(func.count()).select_from(anime_studios))).scalar() or 0
+    duplicate_rows = await session.execute(
+        select(Anime.mal_id, func.count(Anime.id))
+        .where(Anime.mal_id.is_not(None))
+        .group_by(Anime.mal_id)
+        .having(func.count(Anime.id) > 1)
+    )
+    missing = {
+        "title": (await session.execute(select(func.count(Anime.id)).where(Anime.title == ""))).scalar() or 0,
+        "synopsis": (await session.execute(select(func.count(Anime.id)).where(Anime.synopsis.is_(None)))).scalar() or 0,
+        "score": (await session.execute(select(func.count(Anime.id)).where(Anime.score.is_(None)))).scalar() or 0,
+        "members": (await session.execute(select(func.count(Anime.id)).where(Anime.members.is_(None)))).scalar() or 0,
+        "image_url": (await session.execute(select(func.count(Anime.id)).where(Anime.image_url.is_(None)))).scalar() or 0,
+    }
+    return {
+        "anime_count": anime_count,
+        "genre_join_count": genre_join_count,
+        "studio_join_count": studio_join_count,
+        "duplicate_mal_ids": [row[0] for row in duplicate_rows],
+        "missing_fields": {key: value for key, value in missing.items() if value},
+    }
+
+
+async def record_dataset_version(
+    session,
+    dataset_version: str,
+    raw_validation: Dict[str, object],
+    db_validation: Dict[str, object],
+    limit: Optional[int],
+) -> None:
+    """Record a local Jikan import run for downstream embeddings/evaluation."""
+    record_count = int(db_validation.get("anime_count") or raw_validation.get("record_count") or 0)
+    session.add(
+        DatasetVersion(
+            name="jikan-smoke" if limit and limit <= 250 else "jikan-import",
+            version=dataset_version,
+            source="jikan",
+            source_url=JIKAN_BASE_URL,
+            record_count=record_count,
+            validation_failures={
+                "raw": raw_validation.get("failures", {}),
+                "database": {
+                    "duplicate_mal_ids": db_validation.get("duplicate_mal_ids", []),
+                    "missing_fields": db_validation.get("missing_fields", {}),
+                    "genre_join_count": db_validation.get("genre_join_count", 0),
+                    "studio_join_count": db_validation.get("studio_join_count", 0),
+                },
+            },
+            metadata_json={
+                "limit": limit,
+                "import_type": "local_smoke" if limit and limit <= 250 else "local_dev",
+                "raw_record_count": raw_validation.get("record_count", 0),
+                "unique_mal_ids": raw_validation.get("unique_mal_ids", 0),
+            },
+        )
+    )
+    await session.commit()
+
+
+async def import_to_database(anime_data: List[Dict], dataset_version: str, limit: Optional[int] = None):
     """Import anime data to PostgreSQL database"""
     logger.info("Importing to database...")
+    raw_validation = validate_raw_anime_data(anime_data)
     
-    async with AsyncSessionLocal() as session:
+    if database.AsyncSessionLocal is None:
+        await database.init_db()
+
+    async with database.AsyncSessionLocal() as session:
         # Import genres first
         logger.info("Importing genres...")
         genres_file = DATA_DIR / "genres.json"
@@ -312,7 +414,11 @@ async def import_to_database(anime_data: List[Dict]):
                 continue
         
         await session.commit()
+        db_validation = await validate_database_import(session)
+        await record_dataset_version(session, dataset_version, raw_validation, db_validation, limit)
         logger.info(f"✅ Imported {imported_count} anime to database")
+        logger.info("Dataset version recorded: %s", dataset_version)
+        logger.info("Database validation: %s", db_validation)
 
 
 def parse_duration(duration_str: Optional[str]) -> Optional[int]:
@@ -330,7 +436,7 @@ def parse_duration(duration_str: Optional[str]) -> Optional[int]:
             mins = int(duration_str.split("min")[0].split()[-1])
             minutes += mins
         return minutes if minutes > 0 else None
-    except:
+    except Exception:
         return None
 
 
@@ -342,7 +448,13 @@ async def main():
     parser.add_argument("--limit", type=int, default=None, help="Limit number of anime to fetch")
     parser.add_argument("--enrich", action="store_true", help="Fetch full details for each anime")
     parser.add_argument("--import-db", action="store_true", help="Import to database")
+    parser.add_argument(
+        "--dataset-version",
+        default=None,
+        help="Dataset version label. Defaults to jikan-smoke-YYYYmmdd-HHMMSS.",
+    )
     args = parser.parse_args()
+    dataset_version = args.dataset_version or f"jikan-smoke-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}"
     
     start_time = time.time()
     
@@ -362,7 +474,8 @@ async def main():
         
         # Import to database if requested
         if args.import_db:
-            await import_to_database(fetcher.anime_data)
+            await import_to_database(fetcher.anime_data, dataset_version=dataset_version, limit=args.limit)
+            await database.close_db()
     
     elapsed = time.time() - start_time
     logger.info(f"✅ Complete! Time: {elapsed:.2f}s")

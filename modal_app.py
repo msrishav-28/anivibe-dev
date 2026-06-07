@@ -1,198 +1,183 @@
 """
-Modal ML Service - GPU-powered inference for AniVibe
+Modal ML service for AniVibe.
 
 Deploy: modal deploy modal_app.py
 Local test: modal run modal_app.py
 """
-import modal
 import os
 
-# Create Modal app
+import modal
+
 app = modal.App("anivibe-ml")
 
-# Docker image with ML dependencies
 image = (
     modal.Image.debian_slim(python_version="3.10")
     .pip_install(
         "torch",
-        "torchvision", 
+        "torchvision",
         "transformers",
         "sentence-transformers",
         "open-clip-torch",
-        "faiss-cpu",
         "pillow",
         "numpy",
+        "psycopg2-binary",
+        "pgvector",
         "fastapi",
     )
 )
 
-# Secrets (add in Modal dashboard)
 secrets = [
-    modal.Secret.from_name("supabase-credentials"),  # SUPABASE_URL, SUPABASE_SERVICE_KEY
+    modal.Secret.from_name("anivibe-production"),  # DATABASE_URL
 ]
 
 
-@app.function(
-    image=image,
-    secrets=secrets,
-    gpu="T4",  # NVIDIA T4 GPU
-    timeout=300,  # 5 minutes max
-    container_idle_timeout=60,  # Keep warm for 1 minute
-)
+def _sync_database_url() -> str:
+    database_url = os.environ.get("DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("DATABASE_URL is not configured")
+    return database_url.replace("postgresql+asyncpg://", "postgresql://")
+
+
+def _query_pgvector(embedding: list[float], model_name: str, limit: int) -> list[dict]:
+    import psycopg2
+    import psycopg2.extras
+
+    embedding_text = str(embedding)
+    sql = """
+        SELECT
+            a.id AS anime_id,
+            a.title,
+            a.image_url,
+            1 - (ae.embedding <=> %s::vector) AS similarity
+        FROM anime_embeddings ae
+        JOIN anime a ON a.id = ae.anime_id
+        WHERE ae.model_name = %s
+        ORDER BY ae.embedding <=> %s::vector
+        LIMIT %s
+    """
+
+    with psycopg2.connect(_sync_database_url()) as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+            cursor.execute(sql, (embedding_text, model_name, embedding_text, limit))
+            rows = cursor.fetchall()
+
+    return [
+        {
+            "anime_id": row["anime_id"],
+            "title": row["title"],
+            "image_url": row["image_url"],
+            "similarity": float(row["similarity"]),
+        }
+        for row in rows
+    ]
+
+
+@app.function(image=image, secrets=secrets, gpu="T4", timeout=300, container_idle_timeout=60)
 @modal.web_endpoint(method="POST")
 def clip_image_search(request: dict):
-    """
-    CLIP-based image search endpoint.
-    
-    Request:
-        {
-            "image_base64": "...",  # Base64 encoded image
-            "limit": 20
-        }
-    
-    Response:
-        {
-            "results": [{"anime_id": 1, "title": "...", "similarity": 0.95}, ...]
-        }
-    """
-    import torch
-    from PIL import Image
+    """Search anime poster embeddings with a CLIP image embedding."""
     import base64
     from io import BytesIO
-    from supabase import create_client, Client
-    import os
-    
-    # Load model (cached after first run)
+
     import open_clip
-    model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='openai')
-    model.eval()
-    
-    # Decode image
+    import torch
+    from PIL import Image
+
+    image_base64 = request.get("image_base64")
+    if not image_base64:
+        return {"results": [], "model_name": "ViT-B-32", "model_version": "openai", "fallback_used": "missing_image"}
+
     try:
-        if "base64," in request["image_base64"]:
-             request["image_base64"] = request["image_base64"].split("base64,")[1]
-             
-        image_data = base64.b64decode(request["image_base64"])
-        image = Image.open(BytesIO(image_data))
-    except Exception as e:
-        return {"error": f"Invalid image data: {str(e)}"}
-    
-    # Get image embedding
+        if "base64," in image_base64:
+            image_base64 = image_base64.split("base64,", 1)[1]
+        image = Image.open(BytesIO(base64.b64decode(image_base64))).convert("RGB")
+    except Exception as exc:
+        return {
+            "results": [],
+            "model_name": "ViT-B-32",
+            "model_version": "openai",
+            "fallback_used": "invalid_image",
+            "error": str(exc),
+        }
+
+    model, _, preprocess = open_clip.create_model_and_transforms("ViT-B-32", pretrained="openai")
+    model.eval()
+
     with torch.no_grad():
         image_tensor = preprocess(image).unsqueeze(0)
         image_embedding = model.encode_image(image_tensor)
         image_embedding = image_embedding / image_embedding.norm(dim=-1, keepdim=True)
-        embedding_list = image_embedding.cpu().numpy()[0].tolist()
-    
-    # Connect to Supabase
-    url: str = os.environ.get("SUPABASE_URL")
-    key: str = os.environ.get("SUPABASE_SERVICE_KEY")
-    supabase: Client = create_client(url, key)
-    
-    # Query via RPC
+        embedding = image_embedding.cpu().numpy()[0].tolist()
+
     try:
-        response = supabase.rpc(
-            "match_anime_embeddings", 
-            {
-                "query_embedding": embedding_list,
-                "match_threshold": 0.5,
-                "match_count": request.get("limit", 20)
-            }
-        ).execute()
-        
-        return {"results": response.data}
-        
-    except Exception as e:
-        print(f"Supabase RPC failed: {e}")
-        # Fallback empty
-        return {"results": []}
-
-
-@app.function(
-    image=image,
-    secrets=secrets,
-    gpu="T4",
-    timeout=300,
-)
-@modal.web_endpoint(method="POST")
-def gnn_recommendations(request: dict):
-    """
-    GNN-based recommendations.
-    
-    Request:
-        {
-            "user_id": "uuid",
-            "limit": 20
+        results = _query_pgvector(embedding, "ViT-B-32", int(request.get("limit", 20)))
+    except Exception as exc:
+        return {
+            "results": [],
+            "model_name": "ViT-B-32",
+            "model_version": "openai",
+            "fallback_used": "database_unavailable",
+            "error": str(exc),
         }
-    
-    Response:
-        {
-            "recommendations": [{"anime_id": 1, "score": 0.92, "reason": "...", ...]
-        }
-    """
-    # TODO: Load trained GNN model
-    # TODO: Generate embeddings for user's watched anime
-    # TODO: Query graph for similar nodes
-    
+
     return {
-        "recommendations": [
-            {"anime_id": 1, "score": 0.92, "reason": "Graph neighborhood match"},
-        ]
+        "results": results,
+        "model_name": "ViT-B-32",
+        "model_version": "openai",
+        "fallback_used": None,
     }
 
 
-@app.function(
-    image=image,
-    secrets=secrets,
-    cpu=2,  # No GPU needed for SBERT
-    timeout=60,
-)
+@app.function(image=image, secrets=secrets, cpu=2, timeout=120)
 @modal.web_endpoint(method="POST")
 def semantic_search(request: dict):
-    """
-    Semantic search using Sentence-BERT.
-    
-    Request:
-        {
-            "query": "dark psychological thriller",
-            "limit": 20
-        }
-    
-    Response:
-        {
-            "results": [{"anime_id": 1, "similarity": 0.89, ...], ...]
-        }
-    """
+    """Search anime text embeddings with an SBERT query embedding."""
     from sentence_transformers import SentenceTransformer
-    import numpy as np
-    
-    # Load model (cached)
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    
-    # Get query embedding
-    query_embedding = model.encode(request["query"])
-    
-    # TODO: Query Supabase pgvector for similar anime synopses
-    
+
+    query = request.get("query")
+    if not query:
+        return {"results": [], "model_name": "all-MiniLM-L6-v2", "model_version": "baseline", "fallback_used": "missing_query"}
+
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    embedding = model.encode(query, normalize_embeddings=True).tolist()
+
+    try:
+        results = _query_pgvector(embedding, "all-MiniLM-L6-v2", int(request.get("limit", 20)))
+    except Exception as exc:
+        return {
+            "results": [],
+            "model_name": "all-MiniLM-L6-v2",
+            "model_version": "baseline",
+            "fallback_used": "database_unavailable",
+            "error": str(exc),
+        }
+
     return {
-        "results": [
-            {"anime_id": 46, "title": "Death Note", "similarity": 0.89},
-            {"anime_id": 16498, "title": "Psycho-Pass", "similarity": 0.85},
-        ]
+        "results": results,
+        "model_name": "all-MiniLM-L6-v2",
+        "model_version": "baseline",
+        "fallback_used": None,
+    }
+
+
+@app.function(image=image, secrets=secrets, gpu="T4", timeout=300)
+@modal.web_endpoint(method="POST")
+def gnn_recommendations(request: dict):
+    """GNN recommendations are intentionally disabled until a trained model is promoted."""
+    return {
+        "recommendations": [],
+        "model_name": "gnn",
+        "model_version": "not_deployed",
+        "fallback_used": "model_not_deployed",
     }
 
 
 @app.function(image=image)
 @modal.web_endpoint(method="GET")
 def health():
-    """Health check endpoint"""
     return {"status": "healthy", "service": "anivibe-ml"}
 
 
-# Local testing
 if __name__ == "__main__":
-    # Test locally with: modal run modal_app.py
     with app.run():
-        print("Testing semantic search...")
-        result = semantic_search.remote({"query": "action anime", "limit": 5})
-        print(result)
+        print(semantic_search.remote({"query": "action anime", "limit": 5}))

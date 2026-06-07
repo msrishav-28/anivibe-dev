@@ -1,242 +1,148 @@
 """
-Redis cache management
+Redis cache management.
 """
 import json
-import pickle
 from typing import Any, Optional
-import redis.asyncio as aioredis
 import logging
+
+import redis.asyncio as aioredis
 
 from config import settings
 
 logger = logging.getLogger(__name__)
 
-# Redis client
 redis_client: Optional[aioredis.Redis] = None
 
 
-async def init_redis():
-    """Initialize Redis connection"""
+async def init_redis() -> None:
+    """Initialize Redis if available."""
     global redis_client
-    
+
     try:
         redis_client = await aioredis.from_url(
             settings.redis_url,
             encoding="utf-8",
-            decode_responses=False,  # We'll handle encoding manually
-            max_connections=50
+            decode_responses=False,
+            max_connections=50,
         )
-        # Test connection
         await redis_client.ping()
         logger.info("Redis connection established")
-        
-    except Exception as e:
-        logger.error(f"Redis initialization failed: {e}")
-        raise
+    except Exception as exc:
+        redis_client = None
+        message = f"Redis unavailable: {exc}"
+        if settings.redis_required or settings.is_production:
+            logger.error(message)
+            raise
+        logger.warning("%s; continuing without cache", message)
 
 
-async def close_redis():
-    """Close Redis connection"""
+async def close_redis() -> None:
+    """Close Redis connection."""
     global redis_client
-    
+
     if redis_client:
         await redis_client.close()
+        redis_client = None
         logger.info("Redis connection closed")
 
 
-def get_redis() -> aioredis.Redis:
-    """
-    Dependency for getting Redis client
-    Usage: redis = Depends(get_redis)
-    """
+def get_redis() -> Optional[aioredis.Redis]:
     return redis_client
 
 
-async def cache_get(key: str, use_pickle: bool = False) -> Optional[Any]:
-    """
-    Get value from cache
-    
-    Args:
-        key: Cache key
-        use_pickle: If True, unpickle the value (for complex objects)
-    
-    Returns:
-        Cached value or None
-    """
+async def cache_get(key: str) -> Optional[Any]:
+    if redis_client is None:
+        return None
     try:
         value = await redis_client.get(key)
         if value is None:
             return None
-        
-        if use_pickle:
-            return pickle.loads(value)
-        else:
-            return json.loads(value.decode('utf-8'))
-            
-    except Exception as e:
-        logger.error(f"Cache get error for key {key}: {e}")
+        return json.loads(value.decode("utf-8"))
+    except Exception as exc:
+        logger.warning("Cache get failed for %s: %s", key, exc)
         return None
 
 
-async def cache_set(
-    key: str,
-    value: Any,
-    expire: int = 3600,
-    use_pickle: bool = False
-) -> bool:
-    """
-    Set value in cache
-    
-    Args:
-        key: Cache key
-        value: Value to cache
-        expire: Expiration time in seconds (default 1 hour)
-        use_pickle: If True, pickle the value (for complex objects)
-    
-    Returns:
-        True if successful, False otherwise
-    """
+async def cache_set(key: str, value: Any, expire: int = 3600) -> bool:
+    if redis_client is None:
+        return False
     try:
-        if use_pickle:
-            serialized = pickle.dumps(value)
-        else:
-            serialized = json.dumps(value).encode('utf-8')
-        
+        serialized = json.dumps(value, default=str).encode("utf-8")
         await redis_client.set(key, serialized, ex=expire)
         return True
-        
-    except Exception as e:
-        logger.error(f"Cache set error for key {key}: {e}")
+    except Exception as exc:
+        logger.warning("Cache set failed for %s: %s", key, exc)
         return False
 
 
 async def cache_delete(key: str) -> bool:
-    """
-    Delete key from cache
-    
-    Args:
-        key: Cache key
-    
-    Returns:
-        True if successful, False otherwise
-    """
+    if redis_client is None:
+        return False
     try:
         await redis_client.delete(key)
         return True
-        
-    except Exception as e:
-        logger.error(f"Cache delete error for key {key}: {e}")
+    except Exception as exc:
+        logger.warning("Cache delete failed for %s: %s", key, exc)
         return False
 
 
 async def cache_exists(key: str) -> bool:
-    """
-    Check if key exists in cache
-    
-    Args:
-        key: Cache key
-    
-    Returns:
-        True if exists, False otherwise
-    """
+    if redis_client is None:
+        return False
     try:
         return await redis_client.exists(key) > 0
-    except Exception as e:
-        logger.error(f"Cache exists error for key {key}: {e}")
+    except Exception as exc:
+        logger.warning("Cache exists failed for %s: %s", key, exc)
         return False
 
 
 async def cache_clear_pattern(pattern: str) -> int:
-    """
-    Delete all keys matching pattern
-    
-    Args:
-        pattern: Pattern to match (e.g., "user:*")
-    
-    Returns:
-        Number of keys deleted
-    """
-    try:
-        keys = []
-        async for key in redis_client.scan_iter(match=pattern):
-            keys.append(key)
-        
-        if keys:
-            return await redis_client.delete(*keys)
+    if redis_client is None:
         return 0
-        
-    except Exception as e:
-        logger.error(f"Cache clear pattern error for {pattern}: {e}")
+    try:
+        keys = [key async for key in redis_client.scan_iter(match=pattern)]
+        if not keys:
+            return 0
+        return await redis_client.delete(*keys)
+    except Exception as exc:
+        logger.warning("Cache clear failed for %s: %s", pattern, exc)
         return 0
 
 
 async def cache_increment(key: str, amount: int = 1) -> Optional[int]:
-    """
-    Increment a counter in cache
-    
-    Args:
-        key: Cache key
-        amount: Amount to increment by
-    
-    Returns:
-        New value or None
-    """
+    if redis_client is None:
+        return None
     try:
         return await redis_client.incrby(key, amount)
-    except Exception as e:
-        logger.error(f"Cache increment error for key {key}: {e}")
+    except Exception as exc:
+        logger.warning("Cache increment failed for %s: %s", key, exc)
         return None
 
 
 async def cache_set_many(mapping: dict, expire: int = 3600) -> bool:
-    """
-    Set multiple key-value pairs
-    
-    Args:
-        mapping: Dictionary of key-value pairs
-        expire: Expiration time in seconds
-    
-    Returns:
-        True if successful, False otherwise
-    """
+    if redis_client is None:
+        return False
     try:
         pipe = redis_client.pipeline()
-        
         for key, value in mapping.items():
-            serialized = json.dumps(value).encode('utf-8')
-            pipe.set(key, serialized, ex=expire)
-        
+            pipe.set(key, json.dumps(value, default=str).encode("utf-8"), ex=expire)
         await pipe.execute()
         return True
-        
-    except Exception as e:
-        logger.error(f"Cache set many error: {e}")
+    except Exception as exc:
+        logger.warning("Cache set many failed: %s", exc)
         return False
 
 
 async def cache_get_many(keys: list) -> dict:
-    """
-    Get multiple values from cache
-    
-    Args:
-        keys: List of cache keys
-    
-    Returns:
-        Dictionary of key-value pairs
-    """
+    if redis_client is None:
+        return {}
     try:
         values = await redis_client.mget(keys)
         result = {}
-        
         for key, value in zip(keys, values):
             if value is not None:
-                try:
-                    result[key] = json.loads(value.decode('utf-8'))
-                except:
-                    result[key] = None
-        
+                result[key] = json.loads(value.decode("utf-8"))
         return result
-        
-    except Exception as e:
-        logger.error(f"Cache get many error: {e}")
+    except Exception as exc:
+        logger.warning("Cache get many failed: %s", exc)
         return {}
