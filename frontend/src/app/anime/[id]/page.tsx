@@ -31,7 +31,7 @@ export default function AnimeDetailPage({ params }: AnimeDetailPageProps) {
 
   const handleAddToWatchlist = () => {
     if (anime) {
-      addToWatchlist(anime.anime_id, 'plan_to_watch');
+      addToWatchlist(anime.anime_id ?? anime.id, 'plan_to_watch');
     }
   };
 
@@ -46,6 +46,12 @@ export default function AnimeDetailPage({ params }: AnimeDetailPageProps) {
     );
   }
 
+  const animeId = anime.anime_id ?? anime.id;
+  const imageUrl = anime.image_url || '/placeholder-anime.svg';
+  const genres: string[] = (anime.genres ?? []).map((genre: string | { name: string }) =>
+    typeof genre === 'string' ? genre : genre.name
+  );
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -53,7 +59,7 @@ export default function AnimeDetailPage({ params }: AnimeDetailPageProps) {
       {/* 1. Background Layer (Blurred Poster) */}
       <div className="fixed inset-0 z-0">
         <Image
-          src={anime.image_url}
+          src={imageUrl}
           alt={anime.title}
           fill
           className="object-cover opacity-60 blur-3xl saturate-150"
@@ -80,7 +86,7 @@ export default function AnimeDetailPage({ params }: AnimeDetailPageProps) {
                 transition={{ duration: 0.4 }}
               >
                 <Image
-                  src={anime.image_url}
+                  src={imageUrl}
                   alt={anime.title}
                   fill
                   className="object-cover"
@@ -91,7 +97,7 @@ export default function AnimeDetailPage({ params }: AnimeDetailPageProps) {
               {/* Title & Actions */}
               <div className="flex-1 flex flex-col justify-end pt-4">
                 <div className="mb-4 flex flex-wrap gap-2">
-                  {anime.genres.map((genre) => (
+                  {genres.map((genre) => (
                     <Badge key={genre} variant="secondary" className="bg-primary/10 text-primary border-primary/20 backdrop-blur-md">
                       {genre}
                     </Badge>
@@ -229,7 +235,7 @@ export default function AnimeDetailPage({ params }: AnimeDetailPageProps) {
                 </TabsContent>
 
                 <TabsContent value="reviews" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <ReviewSection animeId={anime.anime_id} />
+                  <ReviewSection animeId={animeId} />
                 </TabsContent>
               </Tabs>
             </div>
@@ -238,8 +244,8 @@ export default function AnimeDetailPage({ params }: AnimeDetailPageProps) {
             <div className="mt-16">
               <h3 className="text-xl font-heading mb-8 text-white uppercase tracking-widest">Similar Vibes</h3>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {similarAnime.map((item) => (
-                  <AnimeCard key={item.anime_id} anime={item} variant="grid" />
+                {similarAnime.map((item: Anime) => (
+                  <AnimeCard key={item.anime_id ?? item.id} anime={item} variant="grid" />
                 ))}
               </div>
             </div>

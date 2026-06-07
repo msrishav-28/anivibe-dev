@@ -25,33 +25,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   error: null,
 
   login: async (email: string, password: string) => {
+    void email;
+    void password;
     set({ isLoading: true, error: null });
-    try {
-      const response = await api.login(email, password);
-      // Backend returns user object in response
-      set({ user: response.user, isAuthenticated: true, isLoading: false });
-    } catch (error: any) {
-      set({
-        error: error.message || 'Login failed',
-        isLoading: false,
-      });
-      throw error;
-    }
+    set({ error: 'Login is handled by Clerk', isLoading: false });
+    throw new Error('Login is handled by Clerk');
   },
 
   signup: async (username: string, email: string, password: string) => {
+    void username;
+    void email;
+    void password;
     set({ isLoading: true, error: null });
-    try {
-      await api.register({ username, email, password });
-      // Auto-login logic usually handled by calling login, or backend sets cookie on signup too
-      await get().login(email, password);
-    } catch (error: any) {
-      set({
-        error: error.message || 'Signup failed',
-        isLoading: false,
-      });
-      throw error;
-    }
+    set({ error: 'Signup is handled by Clerk', isLoading: false });
+    throw new Error('Signup is handled by Clerk');
   },
 
   logout: async () => {

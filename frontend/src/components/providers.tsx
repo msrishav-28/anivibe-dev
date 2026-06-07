@@ -4,13 +4,31 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/auth-store";
+import { useAuth } from "@clerk/nextjs";
+import { setAuthTokenProvider } from "@/lib/api-client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
     const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser);
+    const { getToken, isLoaded, isSignedIn } = useAuth();
 
     useEffect(() => {
-        fetchCurrentUser();
-    }, [fetchCurrentUser]);
+        setAuthTokenProvider(() => getToken());
+        return () => setAuthTokenProvider(null);
+    }, [getToken]);
+
+    useEffect(() => {
+        if (!isLoaded) return;
+        if (isSignedIn) {
+            fetchCurrentUser();
+        } else {
+            useAuthStore.setState({
+                user: null,
+                isAuthenticated: false,
+                isLoading: false,
+                error: null,
+            });
+        }
+    }, [fetchCurrentUser, isLoaded, isSignedIn]);
 
     // Ensure QueryClient is created only once per session on the client
     const [queryClient] = useState(

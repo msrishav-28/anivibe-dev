@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="768" viewBox="0 0 512 768" role="img" aria-label="Anime poster placeholder">
+  <rect width="512" height="768" fill="#050505"/>
+  <rect x="32" y="32" width="448" height="704" rx="24" fill="#111827" stroke="#8b5cf6" stroke-opacity="0.45"/>
+  <circle cx="256" cy="300" r="96" fill="#8b5cf6" fill-opacity="0.25"/>
+  <path d="M160 520h192M190 568h132" stroke="#e5e7eb" stroke-width="22" stroke-linecap="round" opacity="0.65"/>
+</svg>

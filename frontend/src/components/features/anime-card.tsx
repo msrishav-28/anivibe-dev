@@ -81,6 +81,10 @@ export function AnimeCard({
           ? { scale: 1.05 }
           : { scale: 1 },
   };
+  const animeId = anime.anime_id ?? anime.id;
+  const imageUrl = anime.image_url || '/placeholder-anime.svg';
+  const genres = (anime.genres ?? []).map((genre) => typeof genre === 'string' ? genre : genre.name);
+  const score = anime.score ?? (typeof anime.rating === 'number' ? anime.rating : 0);
 
   return (
     <motion.div
@@ -103,11 +107,11 @@ export function AnimeCard({
         className
       )}
     >
-      <Link href={`/anime/${anime.anime_id}`} onClick={() => onClick?.()}>
+      <Link href={`/anime/${animeId}`} onClick={() => onClick?.()}>
         <div className="relative h-full w-full">
           {/* Poster Image */}
           <Image
-            src={anime.image_url}
+            src={imageUrl}
             alt={anime.title}
             fill
             className={cn(
@@ -132,7 +136,7 @@ export function AnimeCard({
 
           {/* Genre Badges (Top Right) */}
           <div className="absolute right-2 top-2 flex flex-col gap-1">
-            {anime.genres.slice(0, 2).map((genre) => (
+            {genres.slice(0, 2).map((genre) => (
               <motion.div
                 key={genre}
                 initial={{ opacity: 0, x: 20 }}
@@ -158,7 +162,7 @@ export function AnimeCard({
             <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md bg-black/60 px-2 py-1 backdrop-blur-sm">
               <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
               <span className="text-sm font-semibold text-white">
-                {anime.score.toFixed(1)}
+                {score.toFixed(1)}
               </span>
             </div>
           )}

@@ -12,15 +12,19 @@ interface HiddenGemCardProps {
 }
 
 export function HiddenGemCard({ anime, reason }: HiddenGemCardProps) {
+  const animeId = anime.anime_id ?? anime.id;
+  const imageUrl = anime.image_url || '/placeholder-anime.svg';
+  const score = anime.score ?? (typeof anime.rating === 'number' ? anime.rating : 0);
+
   return (
-    <Link href={`/anime/${anime.anime_id}`}>
+    <Link href={`/anime/${animeId}`}>
       <motion.div
         whileHover={{ y: -8, scale: 1.02 }}
         transition={{ duration: 0.3 }}
         className="group relative aspect-[2/3] overflow-hidden rounded-xl bg-card border border-primary-500/30 hover:shadow-neon-purple transition-colors"
       >
         <Image
-          src={anime.image_url}
+          src={imageUrl}
           alt={anime.title}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-110"
@@ -47,8 +51,8 @@ export function HiddenGemCard({ anime, reason }: HiddenGemCardProps) {
 
           <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-3">
             <div className="flex items-center gap-2">
-              <RatingWidget value={anime.score} readonly size="sm" showValue={false} />
-              <span className="text-sm font-bold text-primary-300 shadow-glow">{anime.score.toFixed(1)}</span>
+              <RatingWidget value={score} readonly size="sm" showValue={false} />
+              <span className="text-sm font-bold text-primary-300 shadow-glow">{score.toFixed(1)}</span>
             </div>
           </div>
 

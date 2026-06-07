@@ -8,7 +8,7 @@ export function useHardwareTier(): HardwareTier {
     useEffect(() => {
         const detectTier = () => {
             // FORCE HIGH: User requested no optimizations
-            return 'HIGH';
+            return 'HIGH' as HardwareTier;
 
             /*
             // 1. CPU Core Count (Navigator Hardware Concurrency)

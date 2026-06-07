@@ -22,9 +22,10 @@ export const useWatchlistStore = create<WatchlistState>((set, get) => ({
   error: null,
 
   fetchWatchlist: async (userId?: string, status?: string) => {
+    void userId;
     set({ isLoading: true, error: null });
     try {
-      const entries = await api.getWatchlist(userId, status);
+      const entries = await api.getWatchlist(status as 'watching' | 'completed' | 'plan_to_watch' | 'dropped' | undefined);
       set({ entries, isLoading: false });
     } catch (error: any) {
       set({
